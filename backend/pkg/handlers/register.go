@@ -1,7 +1,9 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
+
 	"social-network/pkg/models"
 	"social-network/pkg/utils"
 
@@ -54,7 +56,9 @@ func (handler *Handler) Register(w http.ResponseWriter, r *http.Request) {
 	newUser.ImagePath = utils.SaveAvatar(r)
 	// Save user in db
 	errSave := handler.repos.UserRepo.Add(newUser)
+
 	if errSave != nil {
+		fmt.Println("achbaro", errSave)
 		utils.RespondWithError(w, "Couldn't save new user", 500)
 		return
 	}

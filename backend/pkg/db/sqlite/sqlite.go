@@ -56,7 +56,7 @@ func Migrations(db *sql.DB) error {
 		return fmt.Errorf("failed to create migrate instance: %w", err)
 	}
 
-	err = m.Down()
+	err = m.Up()
 	if err != nil && err != migrate.ErrNoChange {
 		return fmt.Errorf("migration failed: %w", err)
 	}
