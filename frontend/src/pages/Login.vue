@@ -5,13 +5,15 @@
         <svg width="48" height="48" viewBox="0 0 48 48" fill="none"><circle cx="24" cy="24" r="24" fill="#1976d2"/><text x="50%" y="55%" text-anchor="middle" fill="#fff" font-size="22" font-family="Arial" dy=".3em">SN</text></svg>
       </div>
       <h2>Connexion à Social Network</h2>
-      <form class="login-form">
+      <form class="login-form" @submit.prevent="handleLogin">
         <label for="email">Email</label>
-        <input id="email" type="email" placeholder="Votre email" required />
+        <input id="email" v-model="form.login" type="email" placeholder="Votre email" required />
         <label for="password">Mot de passe</label>
-        <input id="password" type="password" placeholder="Votre mot de passe" required />
+        <input id="password" v-model="form.password" type="password" placeholder="Votre mot de passe" required />
         <button type="submit">Se connecter</button>
       </form>
+      <div v-if="successMsg" class="success-msg">{{ successMsg }}</div>
+      <div v-if="errorMsg" class="error-msg">{{ errorMsg }}</div>
       <div class="register-link">
         Pas de compte ? <router-link to="/register">Créer un compte</router-link>
       </div>
@@ -19,9 +21,52 @@
   </div>
 </template>
 
+
 <script>
+import { useRouter } from 'vue-router'
 export default {
-  name: "Login"
+  name: "Login",
+  data() {
+    return {
+      form: {
+        login: '',
+        password: ''
+      },
+      successMsg: '',
+      errorMsg: ''
+    }
+  },
+  setup() {
+    const router = useRouter();
+    return { router };
+  },
+  methods: {
+    async handleLogin() {
+      this.successMsg = '';
+      this.errorMsg = '';
+      try {
+        const res = await fetch('http://localhost:8081/signin', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            login: this.form.login.trim(),
+            password: this.form.password
+          })
+        });
+        // const data = await res.json();
+        if (res.ok) {
+          this.successMsg = 'Connexion réussie !';
+          this.router.push('/posts');
+        } else {
+          this.errorMsg = "Erreur lors de la connexion.";
+        }
+      } catch (err) {
+        console.log(err);
+        
+        this.errorMsg = "Erreur réseau ou serveur.";
+      }
+    }
+  }
 }
 </script>
 

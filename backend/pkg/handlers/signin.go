@@ -2,10 +2,12 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"time"
+
 	"social-network/pkg/models"
 	"social-network/pkg/utils"
-	"time"
 
 	"golang.org/x/crypto/bcrypt"
 )
@@ -21,22 +23,33 @@ func (handler *Handler) Signin(w http.ResponseWriter, r *http.Request) {
 	var client models.User
 	err := json.NewDecoder(r.Body).Decode(&client)
 	if err != nil {
+		fmt.Println("arrrrrrrrr", err)
+
 		utils.RespondWithError(w, "Error on form submittion", 200)
 		return
 	}
+	fmt.Println(client)
 	/* --------------------------- validate user in db -------------------------- */
 	// find user with email in db (need Password and user_id)
 	dbUser, errDb := handler.repos.UserRepo.FindUserByEmail(client.Email)
 	if errDb != nil {
+		fmt.Println("db", errDb)
+
 		utils.RespondWithError(w, "Wrong credentials", 200)
 		return
 	}
 	// Compare passwords
 	errPwd := bcrypt.CompareHashAndPassword([]byte(dbUser.Password), []byte(client.Password))
 	if errPwd != nil {
+		fmt.Println("errPwd", errPwd)
+
 		utils.RespondWithError(w, "Wrong credentials", 200)
 		return
 	}
+		fmt.Println("OK")
+		w.WriteHeader(200)
+		return
+
 	/* ------------------- user valid - create/update session ------------------- */
 	// get existing session from db
 	_, errSession := handler.repos.SessionRepo.GetByUser(dbUser.ID)
