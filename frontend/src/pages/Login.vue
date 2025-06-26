@@ -38,36 +38,33 @@ export default {
   methods: {
     // Fonction appelée lors de la soumission du formulaire de connexion
     async handleLogin() {
-      // On réinitialise les messages
+
+      console.log("Envoi des données:", {
+    login: this.form.login.trim(),
+    password: this.form.password
+  });
       this.successMsg = '';
       this.errorMsg = '';
       try {
-        // On envoie la requête de connexion au backend
+        // On envoie la requête de connexion au backend avec credentials: 'include'
         const res = await fetch('http://localhost:8081/signin', {
           method: 'POST',
+          credentials: 'include', // Important pour les cookies de session
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             login: this.form.login.trim(),
             password: this.form.password
           })
         });
+        const data = await res.json();
+        
         // Si la connexion est réussie
-        if (res.ok) {
-          const data = await res.json();
-          // On stocke le token dans le localStorage
-          localStorage.setItem('token', data.token);
-          this.successMsg = 'Connexion réussie ! Redirection...';
-          // On attend un peu pour afficher le message puis on redirige
-          setTimeout(() => {
-            if (this.$router) {
-              this.$router.push('/posts');
-            } else {
-              window.location = '/posts';
-            }
-          }, 500);
+        if (res.ok && data.success) {
+          this.successMsg = 'Connexion réussie !';
+          this.$router.push('/');
         } else {
           // Si la connexion échoue
-          this.errorMsg = "Erreur lors de la connexion. Vérifie ton email ou mot de passe.";
+          this.errorMsg = data.error || "Erreur lors de la connexion. Vérifie ton email ou mot de passe.";
         }
       } catch (err) {
         // Si le serveur ne répond pas

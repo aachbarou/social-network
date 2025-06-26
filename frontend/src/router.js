@@ -7,9 +7,10 @@ import Posts from './pages/Posts.vue';
 import Groups from './pages/Groups.vue';
 import Notifications from './pages/Notifications.vue';
 import Chat from './pages/Chat.vue';
+import Home from './pages/Home.vue';
 
 const routes = [
-  { path: '/', name: 'Home', component: Login },
+  { path: '/', name: 'Home', component: Home, meta: { requiresAuth: true } },
   { path: '/login', name: 'Login', component: Login },
   { path: '/register', name: 'Register', component: Register },
   { 
@@ -49,17 +50,29 @@ const router = createRouter({
   routes,
 });
 
-router.beforeEach((to, from, next) => {
-  console.log("[Debug] Route:", to.path);
-  console.log("[Debug] Requires Auth:", to.meta.requiresAuth);
-  console.log("[Debug] Token exists:", !!localStorage.getItem("token"));
+router.beforeEach(async (to, from, next) => {
+  const publicPages = ['/login', '/register'];
+  const authRequired = !publicPages.includes(to.path);
 
-  if (to.meta.requiresAuth && !localStorage.getItem("token")) {
-    console.log("[Debug] 🔴 Blocked - Redirecting to login");
-    next({ name: "Login" }); // Force redirect
-    return; // Stop execution
+  if (!authRequired) {
+    return next();
   }
-  next(); // Proceed
+
+  // Vérifie la session côté backend
+  try {
+    const res = await fetch('http://localhost:8081/sessionActive', {
+      method: 'GET',
+      credentials: 'include'
+    });
+    const data = await res.json();
+    if (res.ok && data.success) {
+      next();
+    } else {
+      next('/login');
+    }
+  } catch (e) {
+    next('/login');
+  }
 });
 
 export default router;

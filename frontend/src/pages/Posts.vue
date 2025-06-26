@@ -1,10 +1,7 @@
 <template>
-  <div v-if="isAuthenticated">
+  <div>
     <h1>Publications</h1>
     <p>Liste des publications à venir.</p>
-  </div>
-  <div v-else>
-    <p>Redirecting to login...</p>
   </div>
 </template>
 
