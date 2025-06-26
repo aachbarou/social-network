@@ -3,16 +3,18 @@ import HelloWorld from './components/HelloWorld.vue'
 </script>
 
 <template>
-  <div id="app">
-    <router-view />
-  </div>
+  <router-view />
 </template>
 
 <script>
 export default {
-  name: 'App',
-};
+  name: 'App'
+}
 </script>
 
 <style>
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+}
 </style>

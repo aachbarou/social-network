@@ -23,7 +23,6 @@
 
 
 <script>
-import { useRouter } from 'vue-router'
 export default {
   name: "Login",
   data() {
@@ -36,40 +35,46 @@ export default {
       errorMsg: ''
     }
   },
-  setup() {
-    const router = useRouter();
-    return { router };
-  },
-methods: {
-  async handleLogin() {
-    this.successMsg = '';
-    this.errorMsg = '';
-    try {
-      const res = await fetch('http://localhost:8081/signin', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          login: this.form.login.trim(),
-          password: this.form.password
-        })
-      });
-      
-      if (res.ok) {
-        const data = await res.json();
-        // Store the token in localStorage
-        console.log("ji",data.token)
-        localStorage.setItem('token', data.token);
-        this.successMsg = 'Connexion réussie !';
-        this.router.push('/posts');
-      } else {
-        this.errorMsg = "Erreur lors de la connexion.";
+  methods: {
+    // Fonction appelée lors de la soumission du formulaire de connexion
+    async handleLogin() {
+      // On réinitialise les messages
+      this.successMsg = '';
+      this.errorMsg = '';
+      try {
+        // On envoie la requête de connexion au backend
+        const res = await fetch('http://localhost:8081/signin', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            login: this.form.login.trim(),
+            password: this.form.password
+          })
+        });
+        // Si la connexion est réussie
+        if (res.ok) {
+          const data = await res.json();
+          // On stocke le token dans le localStorage
+          localStorage.setItem('token', data.token);
+          this.successMsg = 'Connexion réussie ! Redirection...';
+          // On attend un peu pour afficher le message puis on redirige
+          setTimeout(() => {
+            if (this.$router) {
+              this.$router.push('/posts');
+            } else {
+              window.location = '/posts';
+            }
+          }, 500);
+        } else {
+          // Si la connexion échoue
+          this.errorMsg = "Erreur lors de la connexion. Vérifie ton email ou mot de passe.";
+        }
+      } catch (err) {
+        // Si le serveur ne répond pas
+        this.errorMsg = "Erreur réseau ou serveur. Contacte l'administrateur.";
       }
-    } catch (err) {
-      console.log(err);
-      this.errorMsg = "Erreur réseau ou serveur.";
     }
   }
-}
 }
 </script>
 
