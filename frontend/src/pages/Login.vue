@@ -40,33 +40,36 @@ export default {
     const router = useRouter();
     return { router };
   },
-  methods: {
-    async handleLogin() {
-      this.successMsg = '';
-      this.errorMsg = '';
-      try {
-        const res = await fetch('http://localhost:8081/signin', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            login: this.form.login.trim(),
-            password: this.form.password
-          })
-        });
-        // const data = await res.json();
-        if (res.ok) {
-          this.successMsg = 'Connexion réussie !';
-          this.router.push('/posts');
-        } else {
-          this.errorMsg = "Erreur lors de la connexion.";
-        }
-      } catch (err) {
-        console.log(err);
-        
-        this.errorMsg = "Erreur réseau ou serveur.";
+methods: {
+  async handleLogin() {
+    this.successMsg = '';
+    this.errorMsg = '';
+    try {
+      const res = await fetch('http://localhost:8081/signin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          login: this.form.login.trim(),
+          password: this.form.password
+        })
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        // Store the token in localStorage
+        console.log("ji",data.token)
+        localStorage.setItem('token', data.token);
+        this.successMsg = 'Connexion réussie !';
+        this.router.push('/posts');
+      } else {
+        this.errorMsg = "Erreur lors de la connexion.";
       }
+    } catch (err) {
+      console.log(err);
+      this.errorMsg = "Erreur réseau ou serveur.";
     }
   }
+}
 }
 </script>
 
