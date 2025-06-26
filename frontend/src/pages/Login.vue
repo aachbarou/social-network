@@ -3,16 +3,7 @@
     <div class="login-card">
       <div class="login-header">
         <div class="login-logo">
-          <svg width="60" height="60" viewBox="0 0 48 48" fill="none">
-            <circle cx="24" cy="24" r="24" fill="url(#logoGradient)"/>
-            <text x="50%" y="55%" text-anchor="middle" fill="#fff" font-size="22" font-family="Arial" dy=".3em">SN</text>
-            <defs>
-              <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" style="stop-color:#4f46e5"/>
-                <stop offset="100%" style="stop-color:#5b21b6"/>
-              </linearGradient>
-            </defs>
-          </svg>
+          <img src="/src/assets/logo.png" alt="Social Network Logo" class="logo-image" />
         </div>
         <h1>Bienvenue sur Social Network</h1>
         <p class="login-subtitle">Connectez-vous pour retrouver vos amis</p>
@@ -210,8 +201,35 @@ export default {
   transition: all 0.3s ease;
 }
 
-.login-logo:hover {
-  transform: scale(1.1) rotate(5deg);
+.login-logo .logo-image {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  animation: loginLogoGlow 4s ease-in-out infinite;
+  transition: all 0.3s ease;
+  filter: drop-shadow(0 0 15px rgba(232, 121, 198, 0.4));
+}
+
+.login-logo:hover .logo-image {
+  transform: scale(1.15);
+  filter: drop-shadow(0 0 25px rgba(120, 199, 255, 0.7)) 
+          drop-shadow(0 0 40px rgba(232, 121, 198, 0.5)) 
+          drop-shadow(0 0 60px rgba(168, 85, 247, 0.3));
+}
+
+@keyframes loginLogoGlow {
+  0%, 100% { 
+    filter: drop-shadow(0 0 20px rgba(232, 121, 198, 0.5)) 
+            drop-shadow(0 0 30px rgba(168, 85, 247, 0.3));
+  }
+  33% { 
+    filter: drop-shadow(0 0 30px rgba(120, 199, 255, 0.6)) 
+            drop-shadow(0 0 40px rgba(232, 121, 198, 0.4));
+  }
+  66% { 
+    filter: drop-shadow(0 0 25px rgba(168, 85, 247, 0.5)) 
+            drop-shadow(0 0 35px rgba(120, 199, 255, 0.4));
+  }
 }
 
 @keyframes logoFloat {

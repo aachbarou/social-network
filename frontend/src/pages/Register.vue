@@ -3,16 +3,7 @@
     <div class="register-card">
       <div class="register-header">
         <div class="register-logo">
-          <svg width="60" height="60" viewBox="0 0 48 48" fill="none">
-            <circle cx="24" cy="24" r="24" fill="url(#logoGradient)"/>
-            <text x="50%" y="55%" text-anchor="middle" fill="#fff" font-size="22" font-family="Arial" dy=".3em">SN</text>
-            <defs>
-              <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" style="stop-color:#e879c6"/>
-                <stop offset="100%" style="stop-color:#78c7ff"/>
-              </linearGradient>
-            </defs>
-          </svg>
+          <img src="/src/assets/logo.png" alt="Social Network Logo" class="logo-image" />
         </div>
         <h1>Créer un compte</h1>
         <p class="register-subtitle">Rejoignez notre communauté créative</p>
@@ -277,9 +268,39 @@ alert(txt)
   transition: all 0.4s ease;
 }
 
-.register-logo:hover {
-  transform: scale(1.15) rotateZ(-5deg);
-  filter: drop-shadow(0 0 20px rgba(232, 121, 198, 0.6));
+.register-logo .logo-image {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  animation: registerLogoGlow 5s ease-in-out infinite;
+  transition: all 0.4s ease;
+  filter: drop-shadow(0 0 15px rgba(232, 121, 198, 0.4));
+}
+
+.register-logo:hover .logo-image {
+  transform: scale(1.2);
+  filter: drop-shadow(0 0 30px rgba(120, 199, 255, 0.8)) 
+          drop-shadow(0 0 50px rgba(232, 121, 198, 0.6)) 
+          drop-shadow(0 0 70px rgba(147, 51, 234, 0.4));
+}
+
+@keyframes registerLogoGlow {
+  0%, 100% { 
+    filter: drop-shadow(0 0 20px rgba(232, 121, 198, 0.5)) 
+            drop-shadow(0 0 30px rgba(147, 51, 234, 0.3));
+  }
+  25% { 
+    filter: drop-shadow(0 0 30px rgba(120, 199, 255, 0.6)) 
+            drop-shadow(0 0 40px rgba(232, 121, 198, 0.4));
+  }
+  50% { 
+    filter: drop-shadow(0 0 35px rgba(147, 51, 234, 0.6)) 
+            drop-shadow(0 0 45px rgba(120, 199, 255, 0.4));
+  }
+  75% { 
+    filter: drop-shadow(0 0 25px rgba(232, 121, 198, 0.7)) 
+            drop-shadow(0 0 40px rgba(147, 51, 234, 0.3));
+  }
 }
 
 @keyframes logoFloat {

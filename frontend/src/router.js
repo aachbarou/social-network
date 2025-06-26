@@ -8,41 +8,24 @@ import Groups from './pages/Groups.vue';
 import Notifications from './pages/Notifications.vue';
 import Chat from './pages/Chat.vue';
 import Home from './pages/Home.vue';
+import MainLayout from './components/MainLayout.vue';
 
 const routes = [
-  { path: '/', name: 'Home', component: Home, meta: { requiresAuth: true } },
   { path: '/login', name: 'Login', component: Login },
   { path: '/register', name: 'Register', component: Register },
-  { 
-    path: '/profile', 
-    name: 'Profile', 
-    component: Profile,
-    meta: { requiresAuth: true } 
-  },
-  { 
-    path: '/posts', 
-    name: 'Posts', 
-    component: Posts,
-    meta: { requiresAuth: true } 
-  },
-  { 
-    path: '/groups', 
-    name: 'Groups', 
-    component: Groups,
-    meta: { requiresAuth: true } 
-  },
-  { 
-    path: '/notifications', 
-    name: 'Notifications', 
-    component: Notifications,
-    meta: { requiresAuth: true } 
-  },
-  { 
-    path: '/chat', 
-    name: 'Chat', 
-    component: Chat,
-    meta: { requiresAuth: true } 
-  },
+  {
+    path: '/',
+    component: MainLayout,
+    meta: { requiresAuth: true },
+    children: [
+      { path: '', name: 'Home', component: Home },
+      { path: 'posts', name: 'Posts', component: Posts },
+      { path: 'profile', name: 'Profile', component: Profile },
+      { path: 'groups', name: 'Groups', component: Groups },
+      { path: 'notifications', name: 'Notifications', component: Notifications },
+      { path: 'chat', name: 'Chat', component: Chat }
+    ]
+  }
 ];
 
 const router = createRouter({
@@ -52,26 +35,43 @@ const router = createRouter({
 
 router.beforeEach(async (to, from, next) => {
   const publicPages = ['/login', '/register'];
-  const authRequired = !publicPages.includes(to.path);
+  const isPublicPage = publicPages.includes(to.path);
 
-  if (!authRequired) {
-    return next();
-  }
-
-  // Vérifie la session côté backend
+  // Check user authentication status
   try {
     const res = await fetch('http://localhost:8081/sessionActive', {
       method: 'GET',
       credentials: 'include'
     });
     const data = await res.json();
-    if (res.ok && data.type === 'Success') {
-      next();
+    const isAuthenticated = res.ok && data.type === 'Success';
+    
+    if (isPublicPage) {
+      if (isAuthenticated) {
+        // User is authenticated but trying to access login/register, redirect to home
+        return next('/');
+      } else {
+        // User is not authenticated, allow access to login/register
+        return next();
+      }
     } else {
-      next('/login');
+      // For protected routes, check authentication
+      if (isAuthenticated) {
+        // User is authenticated, allow access
+        next();
+      } else {
+        // User is not authenticated, redirect to login
+        next('/login');
+      }
     }
   } catch (e) {
-    next('/login');
+    if (isPublicPage) {
+      // Network error on public page, allow access (user can still try to login)
+      next();
+    } else {
+      // Network error on protected route, redirect to login
+      next('/login');
+    }
   }
 });
 
