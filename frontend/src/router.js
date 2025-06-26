@@ -65,7 +65,7 @@ router.beforeEach(async (to, from, next) => {
       credentials: 'include'
     });
     const data = await res.json();
-    if (res.ok && data.success) {
+    if (res.ok && data.type === 'Success') {
       next();
     } else {
       next('/login');

@@ -7,7 +7,7 @@
       <h2>Connexion à Social Network</h2>
       <form class="login-form" @submit.prevent="handleLogin">
         <label for="email">Email</label>
-        <input id="email" v-model="form.login" type="email" placeholder="Votre email" required />
+        <input id="email" v-model="form.email" type="email" placeholder="Votre email" required />
         <label for="password">Mot de passe</label>
         <input id="password" v-model="form.password" type="password" placeholder="Votre mot de passe" required />
         <button type="submit">Se connecter</button>
@@ -23,12 +23,13 @@
 
 
 <script>
+import { useRouter } from 'vue-router'
 export default {
   name: "Login",
   data() {
     return {
       form: {
-        login: '',
+        email: '',
         password: ''
       },
       successMsg: '',
@@ -38,29 +39,25 @@ export default {
   methods: {
     // Fonction appelée lors de la soumission du formulaire de connexion
     async handleLogin() {
-
-      console.log("Envoi des données:", {
-    login: this.form.login.trim(),
-    password: this.form.password
-  });
       this.successMsg = '';
       this.errorMsg = '';
       try {
         // On envoie la requête de connexion au backend avec credentials: 'include'
-    const res = await fetch('http://localhost:8081/signin', {
-  method: 'POST',
-  credentials: 'include',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({
-    Email: this.form.login.trim(),  // Changed from 'login' to 'Email'
-    Password: this.form.password   // Changed from 'password' to 'Password'
-  })
-});
+        const res = await fetch('http://localhost:8081/signin', {
+          method: 'POST',
+          credentials: 'include', // Important pour les cookies de session
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: this.form.email.trim(),
+            password: this.form.password
+          })
+        });
         const data = await res.json();
+        console.log('Réponse du serveur:', data);
         // Si la connexion est réussie
-        if (res.ok && data.Email) {
+        if (res.ok ) {
           this.successMsg = 'Connexion réussie !';
-          this.$router.push('/');
+          this.$router.push('/posts');
         } else {
           // Si la connexion échoue
           this.errorMsg = data.error || "Erreur lors de la connexion. Vérifie ton email ou mot de passe.";

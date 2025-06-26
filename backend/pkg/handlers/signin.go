@@ -38,6 +38,8 @@ func (handler *Handler) Signin(w http.ResponseWriter, r *http.Request) {
 		utils.RespondWithError(w, "Wrong credentials", 200)
 		return
 	}
+	fmt.Println("dbUser.Password:", dbUser.Password)
+	fmt.Println("client.Password:", client.Password)
 	// Compare passwords
 	errPwd := bcrypt.CompareHashAndPassword([]byte(dbUser.Password), []byte(client.Password))
 	if errPwd != nil {
@@ -85,9 +87,9 @@ func (handler *Handler) SessionActive(w http.ResponseWriter, r *http.Request) {
 	}
 	// check if session not expired
 	sessionValid := utils.CheckSessionExpiration(session)
-	fmt.Printf("daz",sessionValid)
+	fmt.Printf("daz", sessionValid)
 	if !sessionValid {
-		
+
 		// if not valid any more delete from db
 		handler.repos.SessionRepo.Delete(session)
 		// Delete from client browser

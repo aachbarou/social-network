@@ -2,9 +2,9 @@ package utils
 
 import (
 	"net/http"
-	"social-network/pkg/models"
-	. "social-network/pkg/models"
 	"time"
+
+	"social-network/pkg/models"
 )
 
 type contextKey string
@@ -29,7 +29,7 @@ func SessionStart(w http.ResponseWriter, r *http.Request, userID string) models.
 	// create cookie
 	cookie := CreateCookie(sessionID, cookieLifespan)
 	// create session
-	session := Session{
+	session := models.Session{
 		ID:             sessionID,
 		UserID:         userID,
 		ExpirationTime: time.Now().Add(30 * time.Minute),
@@ -41,7 +41,7 @@ func SessionStart(w http.ResponseWriter, r *http.Request, userID string) models.
 }
 
 // Returns true if session time is  not expired
-func CheckSessionExpiration(session Session) bool {
+func CheckSessionExpiration(session models.Session) bool {
 	return session.ExpirationTime.After(time.Now())
 }
 
@@ -57,6 +57,8 @@ func CreateCookie(sessionID string, lifespan int) http.Cookie {
 		Path:     "/",
 		HttpOnly: false,
 		MaxAge:   lifespan,
+		SameSite: http.SameSiteLaxMode, // Pour le dev local, change en SameSiteNoneMode + Secure: true en prod
+		Secure:   false,                // Passe à true en prod avec HTTPS
 	}
 }
 
