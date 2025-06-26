@@ -47,19 +47,18 @@ export default {
       this.errorMsg = '';
       try {
         // On envoie la requête de connexion au backend avec credentials: 'include'
-        const res = await fetch('http://localhost:8081/signin', {
-          method: 'POST',
-          credentials: 'include', // Important pour les cookies de session
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            login: this.form.login.trim(),
-            password: this.form.password
-          })
-        });
+    const res = await fetch('http://localhost:8081/signin', {
+  method: 'POST',
+  credentials: 'include',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    Email: this.form.login.trim(),  // Changed from 'login' to 'Email'
+    Password: this.form.password   // Changed from 'password' to 'Password'
+  })
+});
         const data = await res.json();
-        
         // Si la connexion est réussie
-        if (res.ok && data.success) {
+        if (res.ok && data.Email) {
           this.successMsg = 'Connexion réussie !';
           this.$router.push('/');
         } else {
