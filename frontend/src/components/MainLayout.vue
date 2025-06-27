@@ -44,8 +44,8 @@
       <div class="sidebar-section">
         <button 
           class="sidebar-item" 
-          :class="{ active: currentRoute === '/posts' }"
-          @click="navigateTo('/posts')"
+          :class="{ active: currentRoute === '/' }"
+          @click="navigateTo('/')"
         >
           <HomeIcon />
           <span>Accueil</span>

@@ -2,17 +2,22 @@ package handlers
 
 import (
 	"net/http"
+	"strings"
+
 	"social-network/pkg/models"
 	"social-network/pkg/utils"
-	"strings"
 )
 
 /* ------------------------ fetch all posts for user ------------------------ */
 func (handler *Handler) AllPosts(w http.ResponseWriter, r *http.Request) {
 	w = utils.ConfigHeader(w)
+	if r.Method == "OPTIONS" {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
 	// access user id
 	userId := r.Context().Value(utils.UserKey).(string)
-	//request all posts
+	// request all posts
 	posts, errPosts := handler.repos.PostRepo.GetAll(userId)
 	if errPosts != nil {
 		utils.RespondWithError(w, "Error on getting data", 200)
@@ -43,7 +48,7 @@ func (handler *Handler) UserPosts(w http.ResponseWriter, r *http.Request) {
 		utils.RespondWithError(w, "Error user id", 200)
 		return
 	}
-	//request user posts
+	// request user posts
 	posts, errPosts := handler.repos.PostRepo.GetUserPosts(userId, currentUserId)
 	if errPosts != nil {
 		utils.RespondWithError(w, "Error on getting data", 200)
@@ -117,7 +122,7 @@ func (handler *Handler) NewPost(w http.ResponseWriter, r *http.Request) {
 
 func AttachAuthors(handler *Handler, posts *[]models.Post) error {
 	for i := 0; i < len(*posts); i++ {
-		var userId = (*posts)[i].AuthorID
+		userId := (*posts)[i].AuthorID
 		author, err := handler.repos.UserRepo.GetDataMin(userId)
 		if err != nil {
 			return err
@@ -129,7 +134,7 @@ func AttachAuthors(handler *Handler, posts *[]models.Post) error {
 
 func AttachComments(handler *Handler, posts *[]models.Post) error {
 	for i := 0; i < len(*posts); i++ {
-		var postId = (*posts)[i].ID
+		postId := (*posts)[i].ID
 		comments, err := handler.repos.CommentRepo.Get(postId)
 		if err != nil {
 			return err

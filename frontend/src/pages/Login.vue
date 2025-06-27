@@ -90,7 +90,7 @@ export default {
           } else {
             userStore.setUser(null)
           }
-          router.push('/posts')
+          router.push('/')
         } else {
           errorMsg.value = data.message || 'Erreur de connexion'
         }

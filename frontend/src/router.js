@@ -3,7 +3,6 @@ import { createRouter, createWebHistory } from 'vue-router';
 import Login from './pages/Login.vue';
 import Register from './pages/Register.vue';
 import Profile from './pages/Profile.vue';
-import Posts from './pages/Posts.vue';
 import Groups from './pages/Groups.vue';
 import Notifications from './pages/Notifications.vue';
 import Chat from './pages/Chat.vue';
@@ -19,7 +18,6 @@ const routes = [
     meta: { requiresAuth: true },
     children: [
       { path: '', name: 'Home', component: Home },
-      { path: 'posts', name: 'Posts', component: Posts },
       { path: 'profile', name: 'Profile', component: Profile },
       { path: 'groups', name: 'Groups', component: Groups },
       { path: 'notifications', name: 'Notifications', component: Notifications },
