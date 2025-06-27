@@ -1,7 +1,8 @@
 <template>
   <div class="profile-page">
-    <h1>Mon profil</h1>
-    <div v-if="userStore.loading">
+    <h1 v-if="isOwnProfile">Mon profil</h1>
+    <h1 v-else>Profil utilisateur</h1>
+    <div v-if="loading">
       <p>Chargement du profil...</p>
     </div>
     <div v-else-if="user">
@@ -20,10 +21,10 @@
           <p v-if="user.dateOfBirth"><strong>Date de naissance :</strong> {{ user.dateOfBirth }}</p>
           <p v-if="user.about"><strong>À propos :</strong> {{ user.about }}</p>
           <p v-if="user.status"><strong>Statut du profil :</strong> {{ user.status }}</p>
-          <p v-if="user.currentUser !== undefined"><strong>Vous êtes connecté</strong></p>
+          <p v-if="user.currentUser !== undefined && isOwnProfile"><strong>Vous êtes connecté</strong></p>
         </div>
       </div>
-      <div class="profile-actions">
+      <div v-if="isOwnProfile" class="profile-actions">
         <button @click="toggleStatus">
           {{ user.status && user.status.toLowerCase() === 'public' ? 'Rendre le profil privé' : 'Rendre le profil public' }}
         </button>
@@ -39,7 +40,7 @@
         </ul>
       </div>
       <div class="profile-posts">
-        <h3>Mes posts ({{ posts.length }})</h3>
+        <h3>Posts ({{ posts.length }})</h3>
         <div v-if="posts.length === 0">Aucun post pour le moment.</div>
         <div v-for="post in posts" :key="post.id" class="profile-post-card">
           <div class="profile-post-content">{{ post.content }}</div>
@@ -47,36 +48,44 @@
         </div>
       </div>
     </div>
-    <div v-else-if="userStore.error">
-      <p class="error-msg">{{ userStore.error }}</p>
+    <div v-else>
+      <p class="error-msg">Profil introuvable.</p>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { useUserStore } from '../stores/userStore'
 
+const route = useRoute()
 const userStore = useUserStore()
-const user = computed(() => userStore.user)
+const user = ref(null)
 const followers = ref([])
 const following = ref([])
 const posts = ref([])
+const loading = ref(true)
+const isOwnProfile = computed(() => !route.params.id)
 
-const fetchFollowers = async () => {
-  const res = await fetch('http://localhost:8081/followers', { credentials: 'include' })
+function getFullImageUrl(path) {
+  if (!path) return ''
+  if (path.startsWith('http')) return path
+  return `http://localhost:8081/${path.replace(/^\/+/,'')}`
+}
+
+const fetchFollowers = async (userId) => {
+  const res = await fetch(`http://localhost:8081/followers?userId=${userId}`, { credentials: 'include' })
   const data = await res.json()
   if (res.ok && data.users) followers.value = data.users
 }
-const fetchFollowing = async () => {
-  const res = await fetch('http://localhost:8081/following', { credentials: 'include' })
+const fetchFollowing = async (userId) => {
+  const res = await fetch(`http://localhost:8081/following?userId=${userId}`, { credentials: 'include' })
   const data = await res.json()
   if (res.ok && data.users) following.value = data.users
 }
-
-const fetchUserPosts = async () => {
-  if (!user.value || !user.value.id) return
-  const res = await fetch(`http://localhost:8081/userPosts?id=${user.value.id}`, { credentials: 'include' })
+const fetchUserPosts = async (userId) => {
+  const res = await fetch(`http://localhost:8081/userPosts?id=${userId}`, { credentials: 'include' })
   const data = await res.json()
   if (res.ok && data.posts) posts.value = data.posts
 }
@@ -85,25 +94,39 @@ const toggleStatus = async () => {
   if (!user.value) return
   const newStatus = user.value.status && user.value.status.toLowerCase() === 'public' ? 'private' : 'public'
   await userStore.changeStatus(newStatus)
-  await userStore.fetchUserData() // recharge le profil après changement
+  await loadProfile()
 }
 
-function getFullImageUrl(path) {
-  if (!path) return ''
-  if (path.startsWith('http')) return path
-  // Ajoute le host backend si le chemin est relatif
-  return `http://localhost:8081/${path.replace(/^\/+/, '')}`
-}
-
-onMounted(async () => {
-  if (!user.value) {
+async function loadProfile() {
+  loading.value = true
+  let userId
+  if (route.params.id) {
+    // Profil d'un autre utilisateur
+    userId = route.params.id
+    const res = await fetch(`http://localhost:8081/userData?userId=${userId}`, { credentials: 'include' })
+    const data = await res.json()
+    user.value = (data.users && data.users.length > 0) ? data.users[0] : null
+  } else {
+    // Mon propre profil
     await userStore.reloadUserAfterRefresh()
+    await userStore.fetchUserData()
+    user.value = userStore.user
+    userId = user.value?.id
   }
-  await userStore.fetchUserData()
-  fetchFollowers()
-  fetchFollowing()
-  await fetchUserPosts()
-})
+  if (userId) {
+    await fetchFollowers(userId)
+    await fetchFollowing(userId)
+    await fetchUserPosts(userId)
+  } else {
+    followers.value = []
+    following.value = []
+    posts.value = []
+  }
+  loading.value = false
+}
+
+onMounted(loadProfile)
+watch(() => route.params.id, loadProfile)
 </script>
 
 <style scoped>

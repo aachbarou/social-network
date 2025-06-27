@@ -12,7 +12,24 @@
       <div class="navbar-center">
         <div class="search-bar">
           <MagnifyingGlassIcon class="search-icon" />
-          <input type="text" placeholder="Rechercher..." />
+          <input
+            type="text"
+            placeholder="Rechercher..."
+            v-model="searchQuery"
+            @keyup.enter="searchProfiles"
+            @input="onSearchInput"
+          />
+          <div v-if="showResults && searchResults.length > 0" class="search-results-dropdown">
+            <div
+              v-for="user in searchResults"
+              :key="user.id"
+              class="search-result-item"
+              @click="goToProfile(user.id)"
+            >
+              <img :src="user.avatar ? ('/' + user.avatar) : '/src/assets/default-avatar.png'" class="search-result-avatar" />
+              <span class="search-result-name">{{ user.nickname || (user.firstName + ' ' + user.lastName) }}</span>
+            </div>
+          </div>
         </div>
       </div>
       
@@ -139,7 +156,11 @@ export default {
   },
   data() {
     return {
-      currentRoute: this.$route.path
+      currentRoute: this.$route.path,
+      searchQuery: '',
+      searchResults: [],
+      showResults: false,
+      searchTimeout: null
     }
   },
   watch: {
@@ -173,7 +194,56 @@ export default {
         // Still redirect to login page even if there's a network error
         this.$router.push('/login');
       }
-    }
+    },
+    async searchProfiles() {
+      if (!this.searchQuery.trim()) {
+        this.searchResults = [];
+        this.showResults = false;
+        return;
+      }
+      try {
+        const response = await fetch('http://localhost:8081/allUsers', {
+          credentials: 'include'
+        });
+        if (response.ok) {
+          const data = await response.json();
+          const users = data.users || [];
+          const query = this.searchQuery.trim().toLowerCase();
+          this.searchResults = users.filter(user => {
+            return (
+              (user.nickname && user.nickname.toLowerCase().includes(query)) ||
+              (user.firstName && user.firstName.toLowerCase().includes(query)) ||
+              (user.lastName && user.lastName.toLowerCase().includes(query)) ||
+              (user.email && user.email.toLowerCase().includes(query))
+            );
+          });
+          this.showResults = true;
+        } else {
+          this.searchResults = [];
+          this.showResults = false;
+        }
+      } catch (e) {
+        this.searchResults = [];
+        this.showResults = false;
+      }
+    },
+    onSearchInput() {
+      if (this.searchTimeout) clearTimeout(this.searchTimeout);
+      if (!this.searchQuery.trim()) {
+        this.searchResults = [];
+        this.showResults = false;
+        return;
+      }
+      // debounce: attend 300ms après la dernière frappe
+      this.searchTimeout = setTimeout(() => {
+        this.searchProfiles();
+      }, 300);
+    },
+    goToProfile(userId) {
+      this.$router.push(`/profile/${userId}`);
+      this.showResults = false;
+      this.searchQuery = '';
+    },
   }
 }
 </script>
@@ -517,5 +587,47 @@ export default {
   color: white;
   font-weight: bold;
   font-size: 12px;
+}
+
+/* Search Results Dropdown */
+.search-results-dropdown {
+  position: absolute;
+  top: 110%;
+  left: 0;
+  width: 100%;
+  background: rgba(15, 15, 23, 0.98);
+  border-radius: 10px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.25);
+  z-index: 2000;
+  max-height: 300px;
+  overflow-y: auto;
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+.search-result-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.search-result-item:hover {
+  background: rgba(232, 121, 198, 0.08);
+}
+
+.search-result-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: #eee;
+}
+
+.search-result-name {
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 500;
 }
 </style>
