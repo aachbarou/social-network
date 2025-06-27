@@ -72,4 +72,7 @@ func (handler *Handler) Register(w http.ResponseWriter, r *http.Request) {
 			utils.RespondWithError(w, "Error on creating new session", 500)
 		}
 	*/
+
+	// Send success response
+	utils.RespondWithSuccess(w, "User registered successfully", 201)
 }

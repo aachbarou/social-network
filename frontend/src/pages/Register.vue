@@ -104,55 +104,101 @@
 
 
 <script>
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { useAuthStore } from '../stores/auth'
+import { storeToRefs } from 'pinia'
+
 export default {
   name: "Register",
-  data() {
-    return {
-      form: {
-        email: '',
-        password: '',
-        firstname: '',
-        lastname: '',
-        dateofbirth: '',
-        nickname: '',
-        aboutme: '',
-        avatar: null
-      },
-      successMsg: '',
-      errorMsg: ''
+  setup() {
+    const router = useRouter()
+    const authStore = useAuthStore()
+    
+    // Get reactive data from store
+    const { loading, error } = storeToRefs(authStore)
+    
+    const form = ref({
+      email: '',
+      password: '',
+      firstname: '',
+      lastname: '',
+      dateofbirth: '',
+      nickname: '',
+      aboutme: '',
+      avatar: null
+    })
+    const successMsg = ref('')
+
+    const check = (txt) => {
+      alert(txt)
     }
-  },
-  methods: {
-    check(txt) {
-alert(txt)
-    },
-    onFileChange(e) {
-      this.form.avatar = e.target.files[0];
-    },
-    async handleRegister() {
-      this.successMsg = '';
-      this.errorMsg = '';
+
+    const onFileChange = (e) => {
+      form.value.avatar = e.target.files[0]
+    }
+
+    const handleRegister = async () => {
+      successMsg.value = ''
+      authStore.clearError()
+      
       try {
-        const formData = new FormData();
-        for (const key in this.form) {
-          if (this.form[key]) {
-            formData.append(key, this.form[key]);
+        const formData = new FormData()
+        
+        // Add all form fields to FormData
+        Object.keys(form.value).forEach(key => {
+          if (form.value[key] !== null && form.value[key] !== '') {
+            formData.append(key, form.value[key])
           }
+        })
+        
+        
+        const result = await authStore.register(formData)
+        
+        if (result.success) {
+          successMsg.value = result.message || 'Inscription réussie !'
+          
+          // Wait 2 seconds to show success message, then redirect to login
+          setTimeout(() => {
+            router.push('/login')
+          }, 2000)
+          
+          // Clear form
+          form.value = {
+            email: '',
+            password: '',
+            firstname: '',
+            lastname: '',
+            dateofbirth: '',
+            nickname: '',
+            aboutme: '',
+            avatar: null
+          }
+          
+          // Clear file input
+          const fileInput = document.getElementById('avatar')
+          if (fileInput) fileInput.value = ''
         }
-        const res = await fetch('http://localhost:8081/register', {
-          method: 'POST',
-          body: formData
-        });
-        if (res.ok) {
-          this.successMsg = 'Inscription réussie ! Vous pouvez vous connecter.';
-          this.form = { email: '', password: '', firstname: '', lastname: '', dateofbirth: '', nickname: '', aboutme: '', avatar: null };
-        } else {
-          const data = await res.json();
-          this.errorMsg = data.error || "Erreur lors de l'inscription.";
-        }
+        // Error is automatically handled by the store
       } catch (err) {
-        this.errorMsg = "Erreur réseau ou serveur.";
+        console.error('Registration error:', err)
+        // Show more specific error message
+        if (err.message) {
+          authStore.setError(err.message)
+        } else {
+          authStore.setError('Erreur lors de l\'inscription. Veuillez réessayer.')
+        }
       }
+    }
+
+    return {
+      form,
+      successMsg,
+      errorMsg: error, // Use error from store
+      loading,         // Use loading from store
+      check,
+      onFileChange,
+      handleRegister
     }
   }
 }

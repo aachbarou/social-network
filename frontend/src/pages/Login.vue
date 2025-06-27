@@ -44,54 +44,43 @@
 <script>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { useAuthStore } from '../stores/auth'
+import { storeToRefs } from 'pinia'
 
 export default {
   name: "Login",
   setup() {
     const router = useRouter()
+    const authStore = useAuthStore()
+    
+    // Get reactive data from store
+    const { loading, error } = storeToRefs(authStore)
     
     const form = ref({
       email: '',
       password: ''
     })
     const successMsg = ref('')
-    const errorMsg = ref('')
 
     // Fonction appelée lors de la soumission du formulaire de connexion
     const handleLogin = async () => {
       successMsg.value = ''
-      errorMsg.value = ''
-      try {
-        // On envoie la requête de connexion au backend avec credentials: 'include'
-        const res = await fetch('http://localhost:8081/signin', {
-          method: 'POST',
-          credentials: 'include', // Important pour les cookies de session
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            email: form.value.email.trim(),
-            password: form.value.password
-          })
-        })
-        const data = await res.json()
-        console.log('Réponse du serveur:', data)
-        // Si la connexion est réussie
-        if (res.ok) {
-          successMsg.value = 'Connexion réussie !'
-          router.push('/posts')
-        } else {
-          // Si la connexion échoue
-          errorMsg.value = data.error || "Erreur lors de la connexion. Vérifie ton email ou mot de passe."
-        }
-      } catch (err) {
-        // Si le serveur ne répond pas
-        errorMsg.value = "Erreur réseau ou serveur. Contacte l'administrateur."
+      authStore.clearError()
+      
+      const result = await authStore.login(form.value)
+      
+      if (result.success) {
+        successMsg.value = 'Connexion réussie !'
+        router.push('/posts')
       }
+      // Error is automatically handled by the store
     }
 
     return {
       form,
       successMsg,
-      errorMsg,
+      errorMsg: error, // Use error from store
+      loading,         // Use loading from store
       handleLogin
     }
   }

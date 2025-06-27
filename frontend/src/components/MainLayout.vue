@@ -28,7 +28,7 @@
         
         <div class="navbar-profile">
           <div class="profile-avatar">
-            <span>JD</span>
+            <span>{{ user?.email?.charAt(0).toUpperCase() || 'U' }}</span>
           </div>
           <ChevronDownIcon class="dropdown-icon" />
         </div>
@@ -110,6 +110,10 @@
 </template>
 
 <script>
+import { ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
+import { useAuthStore } from '../stores/auth'
+import { storeToRefs } from 'pinia'
 import {
   MagnifyingGlassIcon,
   BellIcon,
@@ -137,42 +141,35 @@ export default {
     HeartIcon,
     DocumentDuplicateIcon
   },
-  data() {
-    return {
-      currentRoute: this.$route.path
-    }
-  },
-  watch: {
-    '$route'(to) {
-      this.currentRoute = to.path
-    }
-  },
-  methods: {
-    navigateTo(path) {
-      this.$router.push(path)
-    },
-    async logout() {
-      try {
-        const response = await fetch('http://localhost:8081/logout', {
-          method: 'POST',
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        });
+  setup() {
+    const router = useRouter()
+    const authStore = useAuthStore()
+    
+    // Get reactive data from store
+    const { user, isAuthenticated } = storeToRefs(authStore)
+    
+    const currentRoute = ref(router.currentRoute.value.path)
+    
+    // Watch for route changes
+    watch(() => router.currentRoute.value.path, (newPath) => {
+      currentRoute.value = newPath
+    })
 
-        // Always redirect to login page after logout attempt
-        // Even if the logout request fails, we want to redirect the user
-        this.$router.push('/login');
-        
-        if (!response.ok) {
-          console.warn('Logout request failed, but redirecting to login anyway');
-        }
-      } catch (error) {
-        console.error('Error during logout:', error);
-        // Still redirect to login page even if there's a network error
-        this.$router.push('/login');
-      }
+    const navigateTo = (path) => {
+      router.push(path)
+    }
+
+    const logout = async () => {
+      await authStore.logout()
+      router.push('/login')
+    }
+
+    return {
+      user,
+      isAuthenticated,
+      currentRoute,
+      navigateTo,
+      logout
     }
   }
 }
