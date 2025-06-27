@@ -5,6 +5,10 @@ type Group struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
 	AdminID     string `json:"adminId"`
+	ImagePath   string `json:"image"`
+	Creator     *User  `json:"creator,omitempty"` // Creator information
+	CreatedAt   string `json:"createdAt,omitempty"` // Creation date
+	MemberCount int    `json:"memberCount,omitempty"` // Number of members
 
 	Invitations []string `json:"invitations"`
 
@@ -22,6 +26,8 @@ type GroupRepository interface {
 	GetAdmin(groupId string) (string, error)       //get admin id
 	IsMember(groupId, userId string) (bool, error) //checks if user is a member
 	IsAdmin(groupId, userId string) (bool, error)  //checks if user is admin
+	DeleteGroup(groupId, adminId string) error     //delete group (admin only)
+	UpdateGroup(group Group, adminId string) error //update group (admin only)
 
 	SaveMember(userId, groupId string)error 
 }

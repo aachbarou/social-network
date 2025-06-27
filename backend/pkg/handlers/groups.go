@@ -293,21 +293,53 @@ func (handler *Handler) NewGroup(wsServer *ws.Server, w http.ResponseWriter, r *
 		utils.RespondWithError(w, "Error on form submittion", 200)
 		return
 	}
-	/* ---------------------------- read incoming data --------------------------- */
-	// Try to decode the JSON request to a new Group
+	
 	var newGroup models.Group
-	err := json.NewDecoder(r.Body).Decode(&newGroup)
-	if err != nil {
-		utils.RespondWithError(w, "Error on form submittion", 200)
-		return
+	
+	// Check if this is a multipart form (with image) or JSON
+	contentType := r.Header.Get("Content-Type")
+	fmt.Printf("Content-Type: %s\n", contentType)
+	
+	if strings.Contains(contentType, "multipart/form-data") {
+		// Handle multipart form data (with image)
+		fmt.Println("Processing multipart form data...")
+		err := r.ParseMultipartForm(10 << 20) // 10MB max
+		if err != nil {
+			fmt.Printf("Error parsing multipart form: %v\n", err)
+			utils.RespondWithError(w, "Error parsing form data", 200)
+			return
+		}
+		
+		newGroup.Name = r.FormValue("name")
+		newGroup.Description = r.FormValue("description")
+		fmt.Printf("Form values - Name: %s, Description: %s\n", newGroup.Name, newGroup.Description)
+		
+		// Save image if provided
+		newGroup.ImagePath = utils.SaveImage(r)
+		fmt.Printf("Saved image path: %s\n", newGroup.ImagePath)
+		
+	} else {
+		// Handle JSON data (no image)
+		fmt.Println("Processing JSON data...")
+		err := json.NewDecoder(r.Body).Decode(&newGroup)
+		if err != nil {
+			fmt.Printf("Error decoding JSON: %v\n", err)
+			utils.RespondWithError(w, "Error on form submittion", 200)
+			return
+		}
+		fmt.Printf("JSON data - Name: %s, Description: %s\n", newGroup.Name, newGroup.Description)
 	}
-	/* ------------------------- attach addidtional data ------------------------ */
+	
+	/* ------------------------- attach additional data ------------------------ */
 	// access user id
 	newGroup.AdminID = r.Context().Value(utils.UserKey).(string)
 	newGroup.ID = utils.UniqueId()
+	
+	fmt.Printf("Final group data - ID: %s, Name: %s, Description: %s, ImagePath: %s, AdminID: %s\n", 
+		newGroup.ID, newGroup.Name, newGroup.Description, newGroup.ImagePath, newGroup.AdminID)
 
 	/* ------------------------------- save in db ------------------------------- */
-	err = handler.repos.GroupRepo.New(newGroup)
+	err := handler.repos.GroupRepo.New(newGroup)
 	if err != nil {
 		utils.RespondWithError(w, "Error on saving group", 200)
 		return
@@ -342,6 +374,7 @@ func (handler *Handler) NewGroup(wsServer *ws.Server, w http.ResponseWriter, r *
 	}
 	newGroup.Administrator = true
 	//NOTIFY WEBSOCKET ABOUT NEW NOTIFICATION
+	fmt.Printf("Returning group data: %+v\n", newGroup)
 	utils.RespondWithGroups(w, []models.Group{newGroup}, 200)
 }
 
@@ -609,4 +642,119 @@ func (handler *Handler) ResponseInviteRequest(w http.ResponseWriter, r *http.Req
 	}
 	// notify websocket about notification changes
 	utils.RespondWithSuccess(w, "Response successful", 200)
+}
+
+/* -------------------------------------------------------------------------- */
+/*                              group management                              */
+/* -------------------------------------------------------------------------- */
+
+// DeleteGroup allows group creators to delete their groups
+func (handler *Handler) DeleteGroup(w http.ResponseWriter, r *http.Request) {
+	w = utils.ConfigHeader(w)
+	if r.Method != "DELETE" {
+		utils.RespondWithError(w, "Method not allowed", 405)
+		return
+	}
+	
+	// Get group ID from URL parameters
+	query := r.URL.Query()
+	groupId := query.Get("groupId")
+	if groupId == "" {
+		utils.RespondWithError(w, "Group ID is required", 400)
+		return
+	}
+	
+	// Get current user ID
+	userId := r.Context().Value(utils.UserKey).(string)
+	
+	// Delete the group
+	err := handler.repos.GroupRepo.DeleteGroup(groupId, userId)
+	if err != nil {
+		fmt.Printf("Error deleting group: %v\n", err)
+		if err.Error() == "user is not authorized to delete this group" {
+			utils.RespondWithError(w, "Unauthorized to delete this group", 403)
+		} else {
+			utils.RespondWithError(w, "Failed to delete group", 500)
+		}
+		return
+	}
+	
+	utils.RespondWithSuccess(w, "Group deleted successfully", 200)
+}
+
+// UpdateGroup allows group creators to update their groups
+func (handler *Handler) UpdateGroup(w http.ResponseWriter, r *http.Request) {
+	w = utils.ConfigHeader(w)
+	if r.Method != "PUT" && r.Method != "POST" {
+		utils.RespondWithError(w, "Method not allowed", 405)
+		return
+	}
+	
+	// Get current user ID
+	userId := r.Context().Value(utils.UserKey).(string)
+	
+	// Parse multipart form data for potential image upload
+	err := r.ParseMultipartForm(10 << 20) // 10 MB limit
+	if err != nil {
+		// If multipart fails, try regular form parsing
+		err = r.ParseForm()
+		if err != nil {
+			utils.RespondWithError(w, "Error parsing form data", 400)
+			return
+		}
+	}
+	
+	// Get group data from form
+	groupId := r.FormValue("groupId")
+	name := r.FormValue("name")
+	description := r.FormValue("description")
+	
+	if groupId == "" || name == "" {
+		utils.RespondWithError(w, "Group ID and name are required", 400)
+		return
+	}
+	
+	// Create group object
+	group := models.Group{
+		ID:          groupId,
+		Name:        name,
+		Description: description,
+	}
+	
+	// Handle image upload if present
+	file, fileHeader, err := r.FormFile("image")
+	if err == nil {
+		defer file.Close()
+		
+		// Save the uploaded image
+		imagePath, err := utils.SaveUploadedFile(file, fileHeader)
+		if err != nil {
+			fmt.Printf("Error saving image: %v\n", err)
+			utils.RespondWithError(w, "Error saving image", 500)
+			return
+		}
+		group.ImagePath = imagePath
+		fmt.Printf("Image saved to: %s\n", imagePath)
+	} else {
+		// If no new image, keep the existing one
+		existingGroup, err := handler.repos.GroupRepo.GetData(groupId)
+		if err == nil {
+			group.ImagePath = existingGroup.ImagePath
+		}
+	}
+	
+	// Update the group
+	err = handler.repos.GroupRepo.UpdateGroup(group, userId)
+	if err != nil {
+		fmt.Printf("Error updating group: %v\n", err)
+		if err.Error() == "user is not authorized to update this group" {
+			utils.RespondWithError(w, "Unauthorized to update this group", 403)
+		} else {
+			utils.RespondWithError(w, "Failed to update group", 500)
+		}
+		return
+	}
+	
+	fmt.Printf("Group updated successfully: %+v\n", group)
+	utils.RespondWithSuccess(w, "Group updated successfully", 200)
 }
