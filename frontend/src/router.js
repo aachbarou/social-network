@@ -4,6 +4,7 @@ import Login from './pages/Login.vue';
 import Register from './pages/Register.vue';
 import Profile from './pages/Profile.vue';
 import Groups from './pages/Groups.vue';
+import GroupView from './pages/GroupView.vue';
 import Notifications from './pages/Notifications.vue';
 import Chat from './pages/Chat.vue';
 import Home from './pages/Home.vue';
@@ -21,6 +22,7 @@ const routes = [
       { path: 'profile', name: 'Profile', component: Profile },
       { path: 'profile/:id', name: 'ProfileOther', component: Profile },
       { path: 'groups', name: 'Groups', component: Groups },
+      { path: 'group/:id', name: 'GroupView', component: GroupView },
       { path: 'notifications', name: 'Notifications', component: Notifications },
       { path: 'chat', name: 'Chat', component: Chat }
     ]
