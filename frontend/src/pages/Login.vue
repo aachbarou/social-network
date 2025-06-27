@@ -44,11 +44,13 @@
 <script>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { useUserStore } from '../stores/userStore'
 
 export default {
   name: "Login",
   setup() {
     const router = useRouter()
+    const userStore = useUserStore()
     
     const form = ref({
       email: '',
@@ -75,16 +77,25 @@ export default {
         const data = await res.json()
         console.log('Réponse du serveur:', data)
         // Si la connexion est réussie
-        if (res.ok) {
+        if (res.ok && data.type === 'Success') {
           successMsg.value = 'Connexion réussie !'
+          // Récupérer le profil utilisateur après login
+          const userRes = await fetch('http://localhost:8081/currentUser', {
+            method: 'GET',
+            credentials: 'include'
+          })
+          const userData = await userRes.json()
+          if (userRes.ok && userData.users && userData.users.length > 0) {
+            userStore.setUser(userData.users[0])
+          } else {
+            userStore.setUser(null)
+          }
           router.push('/posts')
         } else {
-          // Si la connexion échoue
-          errorMsg.value = data.error || "Erreur lors de la connexion. Vérifie ton email ou mot de passe."
+          errorMsg.value = data.message || 'Erreur de connexion'
         }
       } catch (err) {
-        // Si le serveur ne répond pas
-        errorMsg.value = "Erreur réseau ou serveur. Contacte l'administrateur."
+        errorMsg.value = 'Erreur réseau ou serveur'
       }
     }
 
