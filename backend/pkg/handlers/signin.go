@@ -14,8 +14,12 @@ import (
 
 func (handler *Handler) Signin(w http.ResponseWriter, r *http.Request) {
 	w = utils.ConfigHeader(w)
+	if r.Method == "OPTIONS" {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
 	if r.Method != "POST" {
-		utils.RespondWithError(w, "Error on form submittion", 200)
+		utils.RespondWithError(w, "Error on form submittion", 400)
 		return
 	}
 	/* ---------------------------- read incoming data --------------------------- */
@@ -24,8 +28,7 @@ func (handler *Handler) Signin(w http.ResponseWriter, r *http.Request) {
 	err := json.NewDecoder(r.Body).Decode(&client)
 	if err != nil {
 		fmt.Println("arrrrrrrrr", err)
-
-		utils.RespondWithError(w, "Error on form submittion", 200)
+		utils.RespondWithError(w, "Error on form submittion", 400)
 		return
 	}
 	fmt.Println(client)
@@ -34,8 +37,7 @@ func (handler *Handler) Signin(w http.ResponseWriter, r *http.Request) {
 	dbUser, errDb := handler.repos.UserRepo.FindUserByEmail(client.Email)
 	if errDb != nil {
 		fmt.Println("db", errDb)
-
-		utils.RespondWithError(w, "Wrong credentials", 200)
+		utils.RespondWithError(w, "Wrong credentials", 401)
 		return
 	}
 	fmt.Println("dbUser.Password:", dbUser.Password)
@@ -44,8 +46,7 @@ func (handler *Handler) Signin(w http.ResponseWriter, r *http.Request) {
 	errPwd := bcrypt.CompareHashAndPassword([]byte(dbUser.Password), []byte(client.Password))
 	if errPwd != nil {
 		fmt.Println("errPwd", errPwd)
-
-		utils.RespondWithError(w, "Wrong credentials", 200)
+		utils.RespondWithError(w, "Wrong credentials", 401)
 		return
 	}
 
@@ -61,7 +62,7 @@ func (handler *Handler) Signin(w http.ResponseWriter, r *http.Request) {
 		errOnSave = handler.repos.SessionRepo.Update(newSession)
 	}
 	if errOnSave != nil {
-		utils.RespondWithError(w, "Error on creating new session", 200)
+		utils.RespondWithError(w, "Error on creating new session", 500)
 		return
 	}
 	utils.RespondWithSuccess(w, "Login successful", 200)
