@@ -146,6 +146,7 @@ alert(txt)
         if (res.ok) {
           this.successMsg = 'Inscription réussie ! Vous pouvez vous connecter.';
           this.form = { email: '', password: '', firstname: '', lastname: '', dateofbirth: '', nickname: '', aboutme: '', avatar: null };
+          this.$router.push('/login'); // Redirection vers la page de connexion
         } else {
           const data = await res.json();
           this.errorMsg = data.error || "Erreur lors de l'inscription.";
