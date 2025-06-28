@@ -33,10 +33,27 @@
           </div>
         </div>
         <div class="group-actions">
-          <button @click="openChat" class="btn-primary">
+          <!-- Join button for non-members of public groups -->
+          <button 
+            v-if="canJoinGroup"
+            @click="joinGroup" 
+            class="btn-primary"
+            :disabled="isJoining"
+          >
+            <span class="icon">{{ isJoining ? '⏳' : '➕' }}</span>
+            {{ isJoining ? 'Rejoindre...' : (group.privacy === 'public' ? 'Rejoindre le groupe' : 'Demander à rejoindre') }}
+          </button>
+          
+          <!-- Chat button for members -->
+          <button 
+            v-if="userMembership.isMember || userMembership.isAdmin"
+            @click="openChat" 
+            class="btn-primary"
+          >
             <span class="icon">💬</span>
             Chat
           </button>
+          
           <button @click="$router.go(-1)" class="btn-secondary">
             <span class="icon">←</span>
             Retour
@@ -159,6 +176,11 @@ const activeTab = ref('posts')
 const posts = ref([])
 const members = ref([])
 const events = ref([])
+const isJoining = ref(false)
+const userMembership = ref({
+  isMember: false,
+  isAdmin: false
+})
 
 // Tabs
 const tabs = computed(() => [
@@ -167,36 +189,41 @@ const tabs = computed(() => [
   { id: 'events', label: 'Événements', icon: '📅' }
 ])
 
+// Computed
+const canJoinGroup = computed(() => {
+  return group.value && 
+         (group.value.privacy === 'public' || group.value.privacy === 'private') &&
+         !userMembership.value.isMember && 
+         !userMembership.value.isAdmin
+})
+
 // Methods
 const loadGroup = async () => {
   loading.value = true
   try {
     const groupId = route.params.id
-    console.log('Loading group with ID:', groupId)
     
     // Load group details
     const groupRes = await fetch(`http://localhost:8081/groupInfo?groupId=${groupId}`, {
       credentials: 'include'
     })
     
-    console.log('Group response status:', groupRes.status)
-    
     if (groupRes.ok) {
       const data = await groupRes.json()
-      console.log('Group data received:', data)
       // Backend returns groups array, take the first one
       group.value = data.groups && data.groups.length > 0 ? data.groups[0] : null
       
       if (group.value) {
+        // Set membership status from the group data itself
+        userMembership.value.isMember = group.value.member || false
+        userMembership.value.isAdmin = group.value.administrator || false
+        
         // Load group content
         await loadPosts()
         await loadMembers()
         await loadEvents()
       }
     } else {
-      console.error('Failed to load group:', groupRes.status)
-      const errorText = await groupRes.text()
-      console.error('Error response:', errorText)
       group.value = null
     }
   } catch (error) {
@@ -254,6 +281,46 @@ const loadEvents = async () => {
 
 const openChat = () => {
   alert(`Chat du groupe ${group.value.name} - Fonctionnalité à implémenter`)
+}
+
+const joinGroup = async () => {
+  if (!group.value || isJoining.value) return
+  
+  isJoining.value = true
+  try {
+    // For public groups, join directly. For private groups, send a request.
+    const endpoint = group.value.privacy === 'public' 
+      ? 'http://localhost:8081/joinPublicGroup'
+      : 'http://localhost:8081/newGroupRequest'
+    
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+      body: JSON.stringify({
+        groupId: group.value.id
+      })
+    })
+
+    if (response.ok) {
+      if (group.value.privacy === 'public') {
+        // Successfully joined public group - update membership status and refresh
+        userMembership.value.isMember = true
+        group.value.member = true
+        // Refresh the group data to get updated member count and members list
+        await loadGroup()
+      } else {
+        // For private groups, the request was sent silently
+        // No intrusive popup needed
+      }
+    }
+  } catch (error) {
+    console.error('Error joining group:', error)
+  } finally {
+    isJoining.value = false
+  }
 }
 
 const formatDate = (dateString) => {

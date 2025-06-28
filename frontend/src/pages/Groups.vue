@@ -72,6 +72,7 @@
           :key="group.id"
           :group="group"
           :is-member="group.member"
+          :loading="group.loading || false"
           @view="openGroup"
           @join-request="requestToJoin"
         />
@@ -250,7 +251,18 @@ const openGroup = (group) => {
 
 const requestToJoin = async (groupId) => {
   try {
-    const response = await fetch('http://localhost:8081/newGroupRequest', {
+    // Find the group to check its privacy
+    const group = publicGroups.value.find(g => g.id === groupId)
+    if (!group) return
+    
+    // Set loading state on the specific group
+    group.loading = true
+    
+    const endpoint = group.privacy === 'public' 
+      ? 'http://localhost:8081/joinPublicGroup'
+      : 'http://localhost:8081/newGroupRequest'
+    
+    const response = await fetch(endpoint, {
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
@@ -258,20 +270,27 @@ const requestToJoin = async (groupId) => {
     })
     
     if (response.ok) {
-      // Update UI to show request sent
-      const group = publicGroups.value.find(g => g.id === groupId)
-      if (group) {
+      if (group.privacy === 'public') {
+        // Successfully joined public group - add small delay to ensure backend operation completes
+        await new Promise(resolve => setTimeout(resolve, 500))
+        // Then redirect to group page (note: route is /group/:id not /groups/:id)
+        router.push(`/group/${groupId}`)
+      } else {
+        // Update UI to show request sent for private group
         group.requestPending = true
+        // No popup needed - silent success
       }
-      
-      // Show success feedback
-      alert('Demande d\'adhésion envoyée avec succès!')
     } else {
-      throw new Error('Failed to send join request')
+      throw new Error('Failed to join/request group')
     }
   } catch (error) {
-    console.error('Error sending join request:', error)
-    alert('Erreur lors de l\'envoi de la demande d\'adhésion')
+    console.error('Error joining group:', error)
+  } finally {
+    // Reset loading state
+    const group = publicGroups.value.find(g => g.id === groupId)
+    if (group) {
+      group.loading = false
+    }
   }
 }
 

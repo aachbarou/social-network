@@ -29,7 +29,7 @@ func (repo *GroupRepository) GetAllAndRelations(userID string) ([]models.Group, 
 		var member int
 		var admin int
 		rows.Scan(&group.ID, &group.Name, &group.Privacy, &member, &admin, &group.MemberCount)
-		if member != 0 {
+		if member != 0 || admin != 0 {  // Admin is also considered a member
 			group.Member = true
 		}
 		if admin != 0 {

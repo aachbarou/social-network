@@ -25,5 +25,5 @@ type GroupRepository interface {
 	IsMember(groupId, userId string) (bool, error) //checks if user is a member
 	IsAdmin(groupId, userId string) (bool, error)  //checks if user is admin
 
-	SaveMember(userId, groupId string)error 
+	SaveMember(userId, groupId string) error 
 }

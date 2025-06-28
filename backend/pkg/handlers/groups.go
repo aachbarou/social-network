@@ -132,6 +132,7 @@ func (handler *Handler) GroupInfo(w http.ResponseWriter, r *http.Request) {
 	// check if admin, or member or member request pending
 	if userId == group.AdminID {
 		group.Administrator = true
+		group.Member = true // Admin is also a member
 	} else {
 		group.Member, err = handler.repos.GroupRepo.IsMember(group.ID, userId)
 		if err != nil {
@@ -150,7 +151,6 @@ func (handler *Handler) GroupInfo(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 		}
-
 	}
 	utils.RespondWithGroups(w, []models.Group{group}, 200)
 }
@@ -675,4 +675,75 @@ func (handler *Handler) ResponseInviteRequest(w http.ResponseWriter, r *http.Req
 	}
 	// notify websocket about notification changes
 	utils.RespondWithSuccess(w, "Response successful", 200)
+}
+
+// JoinPublicGroup allows users to join public groups directly without admin approval
+func (handler *Handler) JoinPublicGroup(w http.ResponseWriter, r *http.Request) {
+	w = utils.ConfigHeader(w)
+	if r.Method != "POST" {
+		utils.RespondWithError(w, "Method not allowed", 405)
+		return
+	}
+
+	// Get current user ID
+	userId := r.Context().Value(utils.UserKey).(string)
+
+	// Parse request body
+	type JoinRequest struct {
+		GroupID string `json:"groupId"`
+	}
+	var joinReq JoinRequest
+	err := json.NewDecoder(r.Body).Decode(&joinReq)
+	if err != nil {
+		utils.RespondWithError(w, "Invalid request body", 400)
+		return
+	}
+
+	if joinReq.GroupID == "" {
+		utils.RespondWithError(w, "Group ID is required", 400)
+		return
+	}
+
+	// Check if group exists and is public
+	group, err := handler.repos.GroupRepo.GetData(joinReq.GroupID)
+	if err != nil {
+		utils.RespondWithError(w, "Group not found", 404)
+		return
+	}
+
+	if group.Privacy != "public" {
+		utils.RespondWithError(w, "Can only join public groups directly", 403)
+		return
+	}
+
+	// Check if user is already an admin
+	isAdmin, err := handler.repos.GroupRepo.IsAdmin(joinReq.GroupID, userId)
+	if err != nil {
+		utils.RespondWithError(w, "Error checking admin status", 500)
+		return
+	}
+	if isAdmin {
+		utils.RespondWithError(w, "You are already an admin of this group", 400)
+		return
+	}
+
+	// Check if user is already a member
+	isMember, err := handler.repos.GroupRepo.IsMember(joinReq.GroupID, userId)
+	if err != nil {
+		utils.RespondWithError(w, "Error checking membership status", 500)
+		return
+	}
+	if isMember {
+		utils.RespondWithError(w, "You are already a member of this group", 400)
+		return
+	}
+
+	// Add user as a member
+	err = handler.repos.GroupRepo.SaveMember(userId, joinReq.GroupID)
+	if err != nil {
+		utils.RespondWithError(w, "Error joining group", 500)
+		return
+	}
+
+	utils.RespondWithSuccess(w, "Successfully joined the group", 200)
 }

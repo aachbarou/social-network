@@ -93,7 +93,7 @@ func setRoutes(handler *handlers.Handler, wsServer *ws.Server) http.Handler {
 	mux.HandleFunc("/responseGroupRequest", handler.Auth(func(w http.ResponseWriter, r *http.Request) {
 		handler.ResponseGroupRequest(wsServer, w, r)
 	})) // response to join request
-	mux.HandleFunc("/responseInviteRequest", handler.Auth(handler.ResponseInviteRequest)) // response to invite request
+	mux.HandleFunc("/joinPublicGroup", handler.Auth(handler.JoinPublicGroup)) // join public group directly
 
 	/* --------------------------------- events --------------------------------- */
 	mux.HandleFunc("/newEvent", handler.Auth(func(w http.ResponseWriter, r *http.Request) {

@@ -58,9 +58,13 @@
           v-if="!group.requestPending"
           @click="handleJoinRequest"
           class="btn-primary"
-          :disabled="loading"
+          :disabled="props.loading"
         >
-          <template v-if="group.privacy === 'public'">
+          <template v-if="props.loading">
+            <span class="icon animate-spin">⏳</span>
+            {{ group.privacy === 'public' ? 'Rejoindre...' : 'Envoi...' }}
+          </template>
+          <template v-else-if="group.privacy === 'public'">
             <span class="icon">➕</span>
             Rejoindre
           </template>
@@ -90,12 +94,14 @@ const props = defineProps({
   isMember: {
     type: Boolean,
     default: false
+  },
+  loading: {
+    type: Boolean,
+    default: false
   }
 })
 
 const emit = defineEmits(['view', 'chat', 'join-request'])
-
-const loading = ref(false)
 
 const privacyIcon = computed(() => {
   return props.group.privacy === 'public' ? '🌐' : '🔒'
@@ -111,11 +117,7 @@ const handleImageError = (event) => {
 }
 
 const handleJoinRequest = () => {
-  loading.value = true
   emit('join-request', props.group.id)
-  setTimeout(() => {
-    loading.value = false
-  }, 1000)
 }
 </script>
 
@@ -275,6 +277,15 @@ const handleJoinRequest = () => {
   font-size: 0.875rem;
   font-weight: 600;
   border: 1px solid rgba(255, 193, 7, 0.3);
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 /* Responsive */
