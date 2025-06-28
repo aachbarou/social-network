@@ -6,13 +6,6 @@
         Rendre profil {{ isPrivate ? 'public' : 'privé' }}
       </button>
     </div>
-    <!-- Boutons d'action pour les autres profils -->
-    <div v-else>
-      <button v-if="isFollowing" @click="unfollow">Unfollow</button>
-      <button v-else-if="isPrivate && !isFollowRequested" @click="follow">Demander à suivre</button>
-      <button v-else-if="!isFollowing && isPublic && !isFollowRequested" @click="follow">Suivre</button>
-      <span v-if="isFollowRequested">Demande envoyée</span>
-    </div>
     <!-- Affichage conditionnel des infos -->
     <div v-if="isOwnProfile || isPublic || isFollower" class="profile-infos">
       <h1 v-if="isOwnProfile">Mon profil</h1>
@@ -81,11 +74,9 @@
 import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useUserStore } from '../stores/userStore'
-import { useFollowStore } from '../stores/followStore'
 
 const route = useRoute()
 const userStore = useUserStore()
-const followStore = useFollowStore()
 const user = ref(null)
 const followers = ref([])
 const following = ref([])
@@ -96,8 +87,6 @@ const isPublic = computed(() => user.value?.status?.toLowerCase() !== 'private')
 const isPrivate = computed(() => user.value?.status?.toLowerCase() === 'private')
 const showPrivacyConfirm = ref(false)
 const pendingPrivacy = ref(null)
-const isFollowing = computed(() => user.value?.id ? followStore.isFollowing(user.value.id) : false)
-const isFollowRequested = computed(() => user.value?.id ? followStore.isFollowRequested(user.value.id) : false)
 
 function getFullImageUrl(path) {
   if (!path) return ''
@@ -136,24 +125,6 @@ const confirmPrivacyChange = async () => {
 const cancelPrivacyChange = () => {
   showPrivacyConfirm.value = false
   pendingPrivacy.value = null
-}
-function follow() {
-  if (!user.value?.id) return
-  if (isPublic.value) {
-    followStore.follow(user.value.id)
-      .then(() => fetchFollowers(user.value.id))
-      .then(() => fetchFollowing(user.value.id))
-  } else {
-    followStore.requestFollow(user.value.id)
-      .then(() => fetchFollowers(user.value.id))
-      .then(() => fetchFollowing(user.value.id))
-  }
-}
-function unfollow() {
-  if (!user.value?.id) return
-  followStore.unfollow(user.value.id)
-    .then(() => fetchFollowers(user.value.id))
-    .then(() => fetchFollowing(user.value.id))
 }
 
 async function loadProfile() {
