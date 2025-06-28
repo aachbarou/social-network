@@ -42,7 +42,8 @@
         <!-- Events Tab -->
         <GroupEvents 
           v-if="activeTab === 'events'"
-          :events="groupStore.currentGroupEvents"
+          :group-id="route.params.id"
+          :can-create-event="groupStore.isCurrentUserMember || groupStore.isCurrentUserAdmin"
         />
       </div>
     </div>

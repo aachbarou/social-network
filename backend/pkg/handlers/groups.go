@@ -220,27 +220,16 @@ func (handler *Handler) GroupEvents(w http.ResponseWriter, r *http.Request) {
 		utils.RespondWithError(w, "Not a member", 200)
 		return
 	}
-	// current user is a member or admin -> get events
-	events, err := handler.repos.EventRepo.GetAll(groupId)
+	// current user is a member or admin -> get events with responses
+	events, err := handler.repos.EventRepo.GetGroupEventsWithResponses(groupId, userId)
 	if err != nil {
 		fmt.Println(err)
 		utils.RespondWithError(w, "Error on getting event data", 200)
 		return
 	}
-	/* ----------------------- attach author to each event ---------------------- */
-	for i := 0; i < len(events); i++ {
-		events[i].Author, _ = handler.repos.UserRepo.GetDataMin(events[i].AuthorID)
-	}
-	/* -------------------- attach participation to each event ------------------- */
-	for i := 0; i < len(events); i++ {
-		going, _ := handler.repos.EventRepo.IsParticipating(events[i].ID, userId)
-		if going {
-			events[i].Going = "YES"
-		} else {
-			events[i].Going = "NO"
-		}
-	}
-	utils.RespondWithEvents(w, events, 200)
+	
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(events)
 }
 
 // returns all posts that belongs to group
@@ -464,6 +453,10 @@ func (handler *Handler) NewGroupPost(w http.ResponseWriter, r *http.Request) {
 	}
 	/* -------- check if current user is a member or admin  of the group -------- */
 	isAdmin, err := handler.repos.GroupRepo.IsAdmin(newPost.GroupID, userId)
+	if err != nil {
+		utils.RespondWithError(w, "Error on getting data", 200)
+		return
+	}
 	isMember, err := handler.repos.GroupRepo.IsMember(newPost.GroupID, userId)
 	if err != nil {
 		utils.RespondWithError(w, "Error on getting data", 200)
@@ -578,6 +571,10 @@ func (handler *Handler) ResponseGroupRequest(wsServer *ws.Server, w http.Respons
 	// access user id
 	userId := r.Context().Value(utils.UserKey).(string)
 	isAdmin, err := handler.repos.GroupRepo.IsAdmin(response.GroupID, userId)
+	if err != nil {
+		utils.RespondWithError(w, "Error checking admin status", 200)
+		return
+	}
 	if !isAdmin {
 		utils.RespondWithError(w, "Unauthorized", 200)
 		return
@@ -630,6 +627,10 @@ func (handler *Handler) NewGroupInvite(wsServer *ws.Server, w http.ResponseWrite
 	userId := r.Context().Value(utils.UserKey).(string)
 	/* -------- check if current user is a member or admin  of the group -------- */
 	isAdmin, err := handler.repos.GroupRepo.IsAdmin(group.ID, userId)
+	if err != nil {
+		utils.RespondWithError(w, "Error on getting data", 200)
+		return
+	}
 	isMember, err := handler.repos.GroupRepo.IsMember(group.ID, userId)
 	if err != nil {
 		utils.RespondWithError(w, "Error on getting data", 200)

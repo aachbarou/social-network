@@ -101,6 +101,8 @@ func setRoutes(handler *handlers.Handler, wsServer *ws.Server) http.Handler {
 		handler.NewEvent(wsServer, w, r)
 	})) // create new
 	mux.HandleFunc("/participate", handler.Auth(handler.Participate)) // react to participation in event
+	mux.HandleFunc("/updateEventResponse", handler.Auth(handler.UpdateEventResponse)) // update RSVP response
+	mux.HandleFunc("/getGroupEvents", handler.Auth(handler.GetGroupEvents)) // get group events with responses
 
 	/* ------------------------------ notifications ----------------------------- */
 	mux.HandleFunc("/notifications", handler.Auth(handler.Notifications)) //get all notifs from db on login

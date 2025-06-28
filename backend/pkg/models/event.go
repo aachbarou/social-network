@@ -1,22 +1,47 @@
 package models
 
+import "time"
+
 type Event struct {
-	ID       string `json:"id"`
-	Title    string `json:"title"`
-	Content  string `json:"content"`
-	Date     string `json:"date"`
-	GroupID  string `json:"groupId"`
-	AuthorID string `json:"authorId"`
-	// going holds status value if user going to event or not
-	Going  string `json:"going"` // YES || NO
-	Author User   `json:"author"`
+	ID          string    `json:"id"`
+	GroupID     string    `json:"groupId"`
+	AuthorID    string    `json:"authorId"`
+	Title       string    `json:"title"`
+	Content     string    `json:"content"`
+	Date        string    `json:"date"`        // Keep as string for compatibility
+	DateTime    time.Time `json:"dateTime"`    // For proper time handling
+	CreatedAt   time.Time `json:"createdAt"`
+	
+	// Author info for display
+	Author User `json:"author"`
+}
+
+type EventResponse struct {
+	EventID  string `json:"eventId"`
+	UserID   string `json:"userId"`
+	Response string `json:"response"` // "going", "not_going", "maybe"
+	UserName string `json:"userName"`
+}
+
+type EventWithResponses struct {
+	Event
+	Responses    []EventResponse `json:"responses"`
+	UserResponse string          `json:"userResponse"` // current user's response
+	GoingCount   int            `json:"goingCount"`
+	NotGoingCount int           `json:"notGoingCount"`
+	MaybeCount   int            `json:"maybeCount"`
 }
 
 type EventRepository interface {
-	GetAll(groupId string) ([]Event, error)      //get all events for group
-	GetData(eventID string)(Event, error)
-	Save(Event) error                            // save new event
-	AddParticipant(eventID, userID string) error // save new participant
-	RemoveParticipant(eventID, userID string) error // remove participant
+	GetAll(groupId string) ([]Event, error)
+	GetData(eventID string) (Event, error)
+	Save(Event) error
+	AddParticipant(eventID, userID string) error
+	RemoveParticipant(eventID, userID string) error
 	IsParticipating(eventID, userID string) (bool, error)
+	
+	// New methods for RSVP functionality
+	UpdateResponse(eventID, userID, response string) error
+	GetEventWithResponses(eventID, currentUserID string) (*EventWithResponses, error)
+	GetGroupEventsWithResponses(groupID, currentUserID string) ([]EventWithResponses, error)
 }

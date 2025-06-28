@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"social-network/pkg/models"
 	"social-network/pkg/utils"
@@ -48,12 +49,11 @@ func (handler *Handler) NewEvent(wsServer *ws.Server, w http.ResponseWriter, r *
 		utils.RespondWithError(w, "Internal server error", 200)
 		return
 	}
-	/* ----------------- if user going also save as participant ----------------- */
-	if strings.ToUpper(event.Going) == "YES" {
-		if err = handler.repos.EventRepo.AddParticipant(event.ID, event.AuthorID); err != nil {
-			utils.RespondWithError(w, "Internal server error", 200)
-			return
-		}
+	/* ----------------- creator automatically participates ----------------- */
+	// Automatically add creator as "going" to their own event
+	if err = handler.repos.EventRepo.UpdateResponse(event.ID, event.AuthorID, "going"); err != nil {
+		utils.RespondWithError(w, "Internal server error", 200)
+		return
 	}
 	/* -------------------- save new notification about event ------------------- */
 	// get all group members
@@ -158,4 +158,115 @@ func (handler *Handler) Participate(w http.ResponseWriter, r *http.Request) {
 
 	}
 	utils.RespondWithSuccess(w, "Data saved successfully", 200)
+}
+
+func (handler *Handler) UpdateEventResponse(w http.ResponseWriter, r *http.Request) {
+	w = utils.ConfigHeader(w)
+	if r.Method != "POST" {
+		utils.RespondWithError(w, "Error on form submission", 200)
+		return
+	}
+
+	type ResponseRequest struct {
+		EventID  string `json:"eventId"`
+		Response string `json:"response"` // "going", "not_going", "maybe"
+	}
+
+	var req ResponseRequest
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		utils.RespondWithError(w, "Error parsing request", 200)
+		return
+	}
+
+	userID := r.Context().Value(utils.UserKey).(string)
+
+	// Validate response
+	if req.Response != "going" && req.Response != "not_going" && req.Response != "maybe" {
+		utils.RespondWithError(w, "Invalid response type", 200)
+		return
+	}
+
+	// Check if user is member of the group
+	event, err := handler.repos.EventRepo.GetData(req.EventID)
+	if err != nil {
+		utils.RespondWithError(w, "Event not found", 200)
+		return
+	}
+
+	isMember, err := handler.repos.GroupRepo.IsMember(event.GroupID, userID)
+	if err != nil {
+		utils.RespondWithError(w, "Error checking membership", 200)
+		return
+	}
+
+	isAdmin, err := handler.repos.GroupRepo.IsAdmin(event.GroupID, userID)
+	if err != nil {
+		utils.RespondWithError(w, "Error checking admin status", 200)
+		return
+	}
+
+	if !isMember && !isAdmin {
+		utils.RespondWithError(w, "Not a member of this group", 200)
+		return
+	}
+
+	// Update response
+	err = handler.repos.EventRepo.UpdateResponse(req.EventID, userID, req.Response)
+	if err != nil {
+		utils.RespondWithError(w, "Error updating response", 200)
+		return
+	}
+
+	utils.RespondWithSuccess(w, "Response updated successfully", 200)
+}
+
+func (handler *Handler) GetGroupEvents(w http.ResponseWriter, r *http.Request) {
+	w = utils.ConfigHeader(w)
+	if r.Method != "GET" {
+		utils.RespondWithError(w, "Method not allowed", 200)
+		return
+	}
+
+	groupID := r.URL.Query().Get("groupId")
+	if groupID == "" {
+		utils.RespondWithError(w, "Group ID is required", 200)
+		return
+	}
+
+	userID := r.Context().Value(utils.UserKey).(string)
+	fmt.Printf("DEBUG: GetGroupEvents called for groupID=%s, userID=%s\n", groupID, userID)
+
+	// Check if user is member of the group
+	isMember, err := handler.repos.GroupRepo.IsMember(groupID, userID)
+	if err != nil {
+		fmt.Printf("DEBUG: Error checking membership: %v\n", err)
+		utils.RespondWithError(w, "Error checking membership", 200)
+		return
+	}
+
+	isAdmin, err := handler.repos.GroupRepo.IsAdmin(groupID, userID)
+	if err != nil {
+		fmt.Printf("DEBUG: Error checking admin status: %v\n", err)
+		utils.RespondWithError(w, "Error checking admin status", 200)
+		return
+	}
+
+	if !isMember && !isAdmin {
+		fmt.Printf("DEBUG: User is not a member or admin\n")
+		utils.RespondWithError(w, "Not a member of this group", 200)
+		return
+	}
+
+	// Get events with responses
+	events, err := handler.repos.EventRepo.GetGroupEventsWithResponses(groupID, userID)
+	if err != nil {
+		fmt.Printf("DEBUG: Error fetching events: %v\n", err)
+		utils.RespondWithError(w, "Error fetching events", 200)
+		return
+	}
+
+	fmt.Printf("DEBUG: Successfully fetched %d events\n", len(events))
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(events)
 }

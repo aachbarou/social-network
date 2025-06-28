@@ -193,16 +193,33 @@ export const useGroupStore = defineStore('group', () => {
   }
 
   const fetchGroupEvents = async (groupId) => {
+    if (loading.value) {
+      console.log('Already loading events, skipping...')
+      return
+    }
+    
+    loading.value = true
     try {
-      const response = await fetch(`http://localhost:8081/groupEvents?groupId=${groupId}`, {
+      console.log('Fetching events for groupId:', groupId)
+      const response = await fetch(`http://localhost:8081/getGroupEvents?groupId=${groupId}`, {
         credentials: 'include'
       })
+      console.log('Events response status:', response.status)
       if (response.ok) {
         const data = await response.json()
-        events.value = data.events || []
+        console.log('Events response data:', data)
+        events.value = Array.isArray(data) ? data : []
+        console.log('Events set to:', events.value)
+      } else {
+        const errorText = await response.text()
+        console.error('Events fetch failed:', response.status, errorText)
+        events.value = []
       }
     } catch (err) {
       console.error('Error fetching group events:', err)
+      events.value = []
+    } finally {
+      loading.value = false
     }
   }
 

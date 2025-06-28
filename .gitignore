@@ -1,4 +1,5 @@
 GROUPS_FEATURE_SUMMARY.md
+backend/tempDB.db
 
 # Air hot reload files
 backend/tmp/
