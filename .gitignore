@@ -6,3 +6,4 @@ backend/tmp/
 backend/.air.toml
 backend/build-errors.log
 tmp/
+backend/tempDB.db
