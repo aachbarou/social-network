@@ -1,55 +1,78 @@
 <template>
   <div class="profile-page">
-    <h1 v-if="isOwnProfile">Mon profil</h1>
-    <h1 v-else>Profil utilisateur</h1>
-    <div v-if="loading">
-      <p>Chargement du profil...</p>
+    <!-- Bouton pour changer le statut public/privé si c'est son propre profil -->
+    <div v-if="isOwnProfile">
+      <button @click="askPrivacyChange(isPrivate ? 'public' : 'private')">
+        Rendre profil {{ isPrivate ? 'public' : 'privé' }}
+      </button>
     </div>
-    <div v-else-if="user">
-      <div class="profile-header">
-        <div style="display: flex; align-items: center; gap: 1rem;">
-          <img v-if="user.avatar || user.imagePath"
-               :src="getFullImageUrl(user.avatar || user.imagePath)"
-               alt="Avatar" class="profile-avatar" style="max-width:120px; max-height:120px; object-fit:contain; border:2px solid #e879c6; background:#fff;" />
+    <!-- Boutons d'action pour les autres profils -->
+    <div v-else>
+      <button v-if="isFollowing" @click="unfollow">Unfollow</button>
+      <button v-else-if="isPrivate && !isFollowRequested" @click="follow">Demander à suivre</button>
+      <button v-else-if="!isFollowing && isPublic && !isFollowRequested" @click="follow">Suivre</button>
+      <span v-if="isFollowRequested">Demande envoyée</span>
+    </div>
+    <!-- Affichage conditionnel des infos -->
+    <div v-if="isOwnProfile || isPublic || isFollower" class="profile-infos">
+      <h1 v-if="isOwnProfile">Mon profil</h1>
+      <h1 v-else>Profil utilisateur</h1>
+      <div v-if="loading">
+        <p>Chargement du profil...</p>
+      </div>
+      <div v-else-if="user">
+        <div class="profile-header">
+          <div style="display: flex; align-items: center; gap: 1rem;">
+            <img v-if="user.avatar || user.imagePath"
+                 :src="getFullImageUrl(user.avatar || user.imagePath)"
+                 alt="Avatar" class="profile-avatar" style="max-width:120px; max-height:120px; object-fit:contain; border:2px solid #e879c6; background:#fff;" />
+          </div>
+          <div class="profile-info">
+            <h2>{{ user.nickname || (user.firstName + ' ' + user.lastName) }}</h2>
+            <p v-if="user.firstName"><strong>Prénom :</strong> {{ user.firstName }}</p>
+            <p v-if="user.lastName"><strong>Nom :</strong> {{ user.lastName }}</p>
+            <p v-if="user.nickname"><strong>Nickname :</strong> {{ user.nickname }}</p>
+            <p v-if="user.email"><strong>Email :</strong> {{ user.email }}</p>
+            <p v-if="user.dateOfBirth"><strong>Date de naissance :</strong> {{ user.dateOfBirth }}</p>
+            <p v-if="user.about"><strong>À propos :</strong> {{ user.about }}</p>
+            <p v-if="user.status"><strong>Statut du profil :</strong> {{ user.status }}</p>
+            <p v-if="user.currentUser !== undefined && isOwnProfile"><strong>Vous êtes connecté</strong></p>
+          </div>
         </div>
-        <div class="profile-info">
-          <h2>{{ user.nickname || (user.firstName + ' ' + user.lastName) }}</h2>
-          <p v-if="user.firstName"><strong>Prénom :</strong> {{ user.firstName }}</p>
-          <p v-if="user.lastName"><strong>Nom :</strong> {{ user.lastName }}</p>
-          <p v-if="user.nickname"><strong>Nickname :</strong> {{ user.nickname }}</p>
-          <p v-if="user.email"><strong>Email :</strong> {{ user.email }}</p>
-          <p v-if="user.dateOfBirth"><strong>Date de naissance :</strong> {{ user.dateOfBirth }}</p>
-          <p v-if="user.about"><strong>À propos :</strong> {{ user.about }}</p>
-          <p v-if="user.status"><strong>Statut du profil :</strong> {{ user.status }}</p>
-          <p v-if="user.currentUser !== undefined && isOwnProfile"><strong>Vous êtes connecté</strong></p>
+        <div class="profile-followers">
+          <h3>Followers ({{ followers.length }})</h3>
+          <ul>
+            <li v-for="f in followers" :key="f.id">{{ f.nickname || f.firstName }}</li>
+          </ul>
+          <h3>Abonnements ({{ following.length }})</h3>
+          <ul>
+            <li v-for="f in following" :key="f.id">{{ f.nickname || f.firstName }}</li>
+          </ul>
+        </div>
+        <div class="profile-posts">
+          <h3>Posts ({{ posts.length }})</h3>
+          <div v-if="posts.length === 0">Aucun post pour le moment.</div>
+          <div v-for="post in posts" :key="post.id" class="profile-post-card">
+            <div class="profile-post-content">{{ post.content }}</div>
+            <img v-if="post.image" :src="post.image" alt="Image du post" class="profile-post-image" />
+          </div>
         </div>
       </div>
-      <div v-if="isOwnProfile" class="profile-actions">
-        <button @click="toggleStatus">
-          {{ user.status && user.status.toLowerCase() === 'public' ? 'Rendre le profil privé' : 'Rendre le profil public' }}
-        </button>
-      </div>
-      <div class="profile-followers">
-        <h3>Followers ({{ followers.length }})</h3>
-        <ul>
-          <li v-for="f in followers" :key="f.id">{{ f.nickname || f.firstName }}</li>
-        </ul>
-        <h3>Abonnements ({{ following.length }})</h3>
-        <ul>
-          <li v-for="f in following" :key="f.id">{{ f.nickname || f.firstName }}</li>
-        </ul>
-      </div>
-      <div class="profile-posts">
-        <h3>Posts ({{ posts.length }})</h3>
-        <div v-if="posts.length === 0">Aucun post pour le moment.</div>
-        <div v-for="post in posts" :key="post.id" class="profile-post-card">
-          <div class="profile-post-content">{{ post.content }}</div>
-          <img v-if="post.image" :src="post.image" alt="Image du post" class="profile-post-image" />
-        </div>
+      <div v-else>
+        <p class="error-msg">Profil introuvable.</p>
       </div>
     </div>
     <div v-else>
-      <p class="error-msg">Profil introuvable.</p>
+      <div class="profile-info">
+        <h2>{{ user?.nickname || (user?.firstName + ' ' + user?.lastName) || 'Profil utilisateur' }}</h2>
+      </div>
+      <div class="profile-private-msg">Ce profil est privé.</div>
+    </div>
+    <!-- Pop-up de confirmation -->
+    <div v-if="showPrivacyConfirm" class="popup-confirm">
+      <div>Confirmer le changement de statut du profil ?</div>
+      <button @click="confirmPrivacyChange">Confirmer</button>
+      <button @click="cancelPrivacyChange">Annuler</button>
     </div>
   </div>
 </template>
@@ -58,15 +81,23 @@
 import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useUserStore } from '../stores/userStore'
+import { useFollowStore } from '../stores/followStore'
 
 const route = useRoute()
 const userStore = useUserStore()
+const followStore = useFollowStore()
 const user = ref(null)
 const followers = ref([])
 const following = ref([])
 const posts = ref([])
 const loading = ref(true)
 const isOwnProfile = computed(() => !route.params.id)
+const isPublic = computed(() => user.value?.status?.toLowerCase() !== 'private')
+const isPrivate = computed(() => user.value?.status?.toLowerCase() === 'private')
+const showPrivacyConfirm = ref(false)
+const pendingPrivacy = ref(null)
+const isFollowing = computed(() => user.value?.id ? followStore.isFollowing(user.value.id) : false)
+const isFollowRequested = computed(() => user.value?.id ? followStore.isFollowRequested(user.value.id) : false)
 
 function getFullImageUrl(path) {
   if (!path) return ''
@@ -90,11 +121,39 @@ const fetchUserPosts = async (userId) => {
   if (res.ok && data.posts) posts.value = data.posts
 }
 
-const toggleStatus = async () => {
+const askPrivacyChange = (newPrivacy) => {
+  pendingPrivacy.value = newPrivacy
+  showPrivacyConfirm.value = true
+}
+const confirmPrivacyChange = async () => {
   if (!user.value) return
-  const newStatus = user.value.status && user.value.status.toLowerCase() === 'public' ? 'private' : 'public'
+  const newStatus = pendingPrivacy.value === 'public' ? 'public' : 'private'
   await userStore.changeStatus(newStatus)
+  showPrivacyConfirm.value = false
+  pendingPrivacy.value = null
   await loadProfile()
+}
+const cancelPrivacyChange = () => {
+  showPrivacyConfirm.value = false
+  pendingPrivacy.value = null
+}
+function follow() {
+  if (!user.value?.id) return
+  if (isPublic.value) {
+    followStore.follow(user.value.id)
+      .then(() => fetchFollowers(user.value.id))
+      .then(() => fetchFollowing(user.value.id))
+  } else {
+    followStore.requestFollow(user.value.id)
+      .then(() => fetchFollowers(user.value.id))
+      .then(() => fetchFollowing(user.value.id))
+  }
+}
+function unfollow() {
+  if (!user.value?.id) return
+  followStore.unfollow(user.value.id)
+    .then(() => fetchFollowers(user.value.id))
+    .then(() => fetchFollowing(user.value.id))
 }
 
 async function loadProfile() {
@@ -241,5 +300,20 @@ watch(() => route.params.id, loadProfile)
   font-weight: bold;
   margin-top: 2rem;
   text-align: center;
+}
+.profile-private-msg {
+  color: #888;
+  font-style: italic;
+  margin-top: 1em;
+}
+.popup-confirm {
+  position: fixed;
+  top: 30%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: white;
+  border: 1px solid #ccc;
+  padding: 2em;
+  z-index: 1000;
 }
 </style>
