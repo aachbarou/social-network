@@ -185,6 +185,8 @@ const handleSubmit = async () => {
       invitations: [] // Can be extended later for inviting users
     }
 
+    console.log('Creating group with data:', groupData)
+
     const response = await fetch('http://localhost:8081/newGroup', {
       method: 'POST',
       credentials: 'include',
@@ -194,14 +196,20 @@ const handleSubmit = async () => {
       body: JSON.stringify(groupData)
     })
 
-    if (response.ok) {
+    console.log('Response status:', response.status)
+    
+    const responseData = await response.json()
+    console.log('Response data:', responseData)
+
+    if (response.ok && responseData.type === 'Success') {
+      console.log('Group created successfully, emitting created event')
       emit('created')
     } else {
-      throw new Error('Erreur lors de la création du groupe')
+      throw new Error(responseData.message || 'Erreur lors de la création du groupe')
     }
   } catch (error) {
     console.error('Error creating group:', error)
-    alert('Erreur lors de la création du groupe')
+    alert('Erreur lors de la création du groupe: ' + error.message)
   } finally {
     loading.value = false
   }

@@ -227,9 +227,12 @@ const requestToJoin = async (groupId) => {
 }
 
 const handleGroupCreated = async () => {
+  console.log('handleGroupCreated called - closing modal and reloading data')
   showCreateModal.value = false
   // Reload data to show the new group
+  console.log('Loading data after group creation...')
   await loadData()
+  console.log('Data loaded, switching to my tab')
   activeTab.value = 'my'
 }
 

@@ -228,6 +228,7 @@ alert(txt)
   overflow-y: auto;
   z-index: 10;
   animation: expandIn s ease-out;
+  scale: 0.95;
 }
 
 @keyframes expandIn {
