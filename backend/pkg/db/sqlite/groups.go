@@ -109,19 +109,28 @@ func (repo *GroupRepository) GetMembers(groupId string) ([]models.User, error) {
 			users.last_name, 
 			users.nickname, 
 			users.image,
-			CASE WHEN users.user_id = groups.administrator THEN 1 ELSE 0 END as is_admin
+			CASE WHEN users.user_id = (SELECT administrator FROM groups WHERE group_id = ?) THEN 1 ELSE 0 END as is_admin
 		FROM users 
-		LEFT JOIN groups ON groups.group_id = ?
-		WHERE (users.user_id = groups.administrator) 
+		WHERE (users.user_id = (SELECT administrator FROM groups WHERE group_id = ?)) 
 		   OR (users.user_id IN (SELECT user_id FROM group_users WHERE group_id = ?))
-	`, groupId, groupId)
+	`, groupId, groupId, groupId)
 	if err != nil {
 		return members, err
 	}
 	for rows.Next() {
 		var member models.User
 		var isAdmin int
-		rows.Scan(&member.ID, &member.FirstName, &member.LastName, &member.Nickname, &member.ImagePath, &isAdmin)
+		var nickname sql.NullString
+		err := rows.Scan(&member.ID, &member.FirstName, &member.LastName, &nickname, &member.ImagePath, &isAdmin)
+		if err != nil {
+			continue
+		}
+		// Handle nullable nickname
+		if nickname.Valid {
+			member.Nickname = nickname.String
+		} else {
+			member.Nickname = ""
+		}
 		// Set admin status (we'll use a custom field for this)
 		member.Following = (isAdmin == 1) // Reusing this field to indicate admin status for group context
 		members = append(members, member)

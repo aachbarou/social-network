@@ -100,8 +100,7 @@
                 <span v-else class="default-member">👤</span>
               </div>
               <div class="member-info">
-                <h4>{{ member.firstName }} {{ member.lastName }}</h4>
-                <span class="member-role">{{ member.isAdmin ? 'Administrateur' : 'Membre' }}</span>
+                <h4>{{ member.firstName }} {{ member.lastName }} <span v-if="member.following" class="admin-crown">👑</span></h4>
               </div>
             </div>
           </div>
@@ -609,6 +608,12 @@ onMounted(() => {
   margin: 0 0 4px 0;
   font-size: 1rem;
   font-weight: 600;
+}
+
+.admin-crown {
+  color: #ffd700;
+  font-size: 0.9rem;
+  margin-left: 4px;
 }
 
 .member-role {
