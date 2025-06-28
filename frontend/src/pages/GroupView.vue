@@ -59,6 +59,22 @@
             Chat
           </button>
           
+          <!-- Leave button for members (not admins) -->
+          <button 
+            v-if="canLeaveGroup"
+            @click="showLeaveConfirmation" 
+            class="btn-icon btn-danger"
+            :disabled="isLeaving"
+            title="Quitter le groupe"
+          >
+            <span 
+              class="icon" 
+              :class="{ 'animate-spin': isLeaving }"
+            >
+              {{ isLeaving ? '⏳' : '🚪' }}
+            </span>
+          </button>
+          
           <button @click="$router.go(-1)" class="btn-secondary">
             <span class="icon">←</span>
             Retour
@@ -164,6 +180,33 @@
         Retour aux groupes
       </button>
     </div>
+
+    <!-- Leave Group Confirmation Modal -->
+    <div v-if="showLeaveModal" class="modal-overlay" @click="cancelLeave">
+      <div class="modal-content" @click.stop>
+        <div class="modal-header">
+          <h3>Quitter le groupe</h3>
+        </div>
+        <div class="modal-body">
+          <p>Êtes-vous sûr de vouloir quitter le groupe <strong>{{ group?.name }}</strong> ?</p>
+          <p class="warning-text">Cette action ne peut pas être annulée.</p>
+        </div>
+        <div class="modal-actions">
+          <button @click="cancelLeave" class="btn-secondary">
+            Annuler
+          </button>
+          <button @click="confirmLeave" class="btn-danger" :disabled="isLeaving">
+            <span 
+              class="icon" 
+              :class="{ 'animate-spin': isLeaving }"
+            >
+              {{ isLeaving ? '⏳' : '🚪' }}
+            </span>
+            {{ isLeaving ? 'Quitter...' : 'Quitter' }}
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -182,6 +225,8 @@ const posts = ref([])
 const members = ref([])
 const events = ref([])
 const isJoining = ref(false)
+const isLeaving = ref(false)
+const showLeaveModal = ref(false)
 const userMembership = ref({
   isMember: false,
   isAdmin: false
@@ -199,6 +244,12 @@ const canJoinGroup = computed(() => {
   return group.value && 
          (group.value.privacy === 'public' || group.value.privacy === 'private') &&
          !userMembership.value.isMember && 
+         !userMembership.value.isAdmin
+})
+
+const canLeaveGroup = computed(() => {
+  return group.value && 
+         userMembership.value.isMember && 
          !userMembership.value.isAdmin
 })
 
@@ -336,6 +387,61 @@ const joinGroup = async () => {
     console.log('Join process finished, setting isJoining to false')
     isJoining.value = false
   }
+}
+
+const leaveGroup = async () => {
+  if (!group.value || isLeaving.value) return
+  
+  console.log('Starting leave process, setting isLeaving to true')
+  isLeaving.value = true
+  
+  try {
+    // Add minimum delay to ensure animation is visible
+    const minDelay = new Promise(resolve => setTimeout(resolve, 1000))
+    
+    console.log('Making request to leave group')
+    const response = await fetch('http://localhost:8081/leaveGroup', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+      body: JSON.stringify({
+        groupId: group.value.id
+      })
+    })
+
+    // Wait for both the request and minimum delay
+    await minDelay
+
+    if (response.ok) {
+      // Successfully left group - update membership status and refresh
+      userMembership.value.isMember = false
+      group.value.member = false
+      // Refresh the group data to get updated member count and members list
+      await loadGroup()
+    } else {
+      console.error('Failed to leave group')
+    }
+  } catch (error) {
+    console.error('Error leaving group:', error)
+  } finally {
+    console.log('Leave process finished, setting isLeaving to false')
+    isLeaving.value = false
+    showLeaveModal.value = false
+  }
+}
+
+const showLeaveConfirmation = () => {
+  showLeaveModal.value = true
+}
+
+const cancelLeave = () => {
+  showLeaveModal.value = false
+}
+
+const confirmLeave = () => {
+  leaveGroup()
 }
 
 const formatDate = (dateString) => {
@@ -514,8 +620,30 @@ onMounted(() => {
   border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
+.btn-danger {
+  background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
+  color: white;
+  border: 1px solid rgba(255, 107, 107, 0.3);
+}
+
+.btn-icon {
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .btn-primary:hover,
-.btn-secondary:hover {
+.btn-secondary:hover,
+.btn-danger:hover,
+.btn-icon:hover {
   transform: translateY(-1px);
 }
 
@@ -787,5 +915,75 @@ onMounted(() => {
     flex-direction: column;
     text-align: center;
   }
+}
+
+/* Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+}
+
+.modal-content {
+  background: rgba(15, 15, 23, 0.95);
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 0;
+  max-width: 400px;
+  width: 90%;
+  max-height: 90vh;
+  overflow: hidden;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+}
+
+.modal-header {
+  padding: 24px 24px 0 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  margin-bottom: 20px;
+}
+
+.modal-header h3 {
+  color: white;
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.modal-body {
+  padding: 0 24px 20px 24px;
+}
+
+.modal-body p {
+  color: rgba(255, 255, 255, 0.8);
+  margin: 0 0 16px 0;
+  line-height: 1.5;
+}
+
+.modal-body .warning-text {
+  color: rgba(255, 107, 107, 0.8);
+  font-size: 0.875rem;
+  margin: 0;
+}
+
+.modal-actions {
+  padding: 20px 24px 24px 24px;
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.modal-actions .btn-secondary,
+.modal-actions .btn-danger {
+  padding: 10px 20px;
+  font-size: 0.875rem;
 }
 </style>

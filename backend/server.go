@@ -94,6 +94,7 @@ func setRoutes(handler *handlers.Handler, wsServer *ws.Server) http.Handler {
 		handler.ResponseGroupRequest(wsServer, w, r)
 	})) // response to join request
 	mux.HandleFunc("/joinPublicGroup", handler.Auth(handler.JoinPublicGroup)) // join public group directly
+	mux.HandleFunc("/leaveGroup", handler.Auth(handler.LeaveGroup)) // leave group (members only, not admins)
 
 	/* --------------------------------- events --------------------------------- */
 	mux.HandleFunc("/newEvent", handler.Auth(func(w http.ResponseWriter, r *http.Request) {

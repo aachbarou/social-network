@@ -193,3 +193,14 @@ func (repo *GroupRepository) SaveMember(userId, groupId string) error {
 	}
 	return nil
 }
+
+func (repo *GroupRepository) RemoveMember(userId, groupId string) error {
+	stmt, err := repo.DB.Prepare("DELETE FROM group_users WHERE group_id = ? AND user_id = ?")
+	if err != nil {
+		return err
+	}
+	if _, err := stmt.Exec(groupId, userId); err != nil {
+		return err
+	}
+	return nil
+}

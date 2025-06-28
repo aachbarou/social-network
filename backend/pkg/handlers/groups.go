@@ -747,3 +747,69 @@ func (handler *Handler) JoinPublicGroup(w http.ResponseWriter, r *http.Request) 
 
 	utils.RespondWithSuccess(w, "Successfully joined the group", 200)
 }
+
+// LeaveGroup allows members to leave a group (but not admins)
+func (handler *Handler) LeaveGroup(w http.ResponseWriter, r *http.Request) {
+	w = utils.ConfigHeader(w)
+	if r.Method != "POST" {
+		utils.RespondWithError(w, "Method not allowed", 405)
+		return
+	}
+
+	// Get current user ID
+	userId := r.Context().Value(utils.UserKey).(string)
+
+	// Parse request body
+	type LeaveRequest struct {
+		GroupID string `json:"groupId"`
+	}
+	var leaveReq LeaveRequest
+	err := json.NewDecoder(r.Body).Decode(&leaveReq)
+	if err != nil {
+		utils.RespondWithError(w, "Invalid request body", 400)
+		return
+	}
+
+	if leaveReq.GroupID == "" {
+		utils.RespondWithError(w, "Group ID is required", 400)
+		return
+	}
+
+	// Check if group exists
+	_, err = handler.repos.GroupRepo.GetData(leaveReq.GroupID)
+	if err != nil {
+		utils.RespondWithError(w, "Group not found", 404)
+		return
+	}
+
+	// Check if user is the admin - admins cannot leave their own groups
+	isAdmin, err := handler.repos.GroupRepo.IsAdmin(leaveReq.GroupID, userId)
+	if err != nil {
+		utils.RespondWithError(w, "Error checking admin status", 500)
+		return
+	}
+	if isAdmin {
+		utils.RespondWithError(w, "Admins cannot leave their own groups", 403)
+		return
+	}
+
+	// Check if user is a member
+	isMember, err := handler.repos.GroupRepo.IsMember(leaveReq.GroupID, userId)
+	if err != nil {
+		utils.RespondWithError(w, "Error checking membership status", 500)
+		return
+	}
+	if !isMember {
+		utils.RespondWithError(w, "You are not a member of this group", 400)
+		return
+	}
+
+	// Remove user from the group
+	err = handler.repos.GroupRepo.RemoveMember(userId, leaveReq.GroupID)
+	if err != nil {
+		utils.RespondWithError(w, "Error leaving group", 500)
+		return
+	}
+
+	utils.RespondWithSuccess(w, "Successfully left the group", 200)
+}
