@@ -56,7 +56,7 @@ func (repo *EventRepository) GetAll(groupID string) ([]models.Event, error) {
 		// Parse the date string
 		if dateTime, err := time.Parse(time.RFC3339, dateStr); err == nil {
 			event.DateTime = dateTime
-			event.Date = dateTime.Format("02.01.2006 15:04") // Format for display
+			event.Date = dateStr // Keep original ISO format for frontend parsing
 		}
 		
 		// Parse created_at

@@ -192,12 +192,17 @@ export const useGroupStore = defineStore('group', () => {
     }
   }
 
+  let lastFetchTime = 0
+  const FETCH_COOLDOWN = 1000 // 1 second cooldown
+
   const fetchGroupEvents = async (groupId) => {
-    if (loading.value) {
-      console.log('Already loading events, skipping...')
+    const now = Date.now()
+    if (loading.value || (now - lastFetchTime < FETCH_COOLDOWN)) {
+      console.log('Skipping events fetch - too frequent')
       return
     }
     
+    lastFetchTime = now
     loading.value = true
     try {
       console.log('Fetching events for groupId:', groupId)

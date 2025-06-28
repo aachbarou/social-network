@@ -141,15 +141,18 @@ const emit = defineEmits(['update-response'])
 const showParticipants = ref(false)
 
 const formatDay = (dateString) => {
-  return new Date(dateString).getDate().toString().padStart(2, '0')
+  const date = new Date(dateString)
+  return date.getDate().toString().padStart(2, '0')
 }
 
 const formatMonth = (dateString) => {
-  return new Date(dateString).toLocaleDateString('fr-FR', { month: 'short' }).toUpperCase()
+  const date = new Date(dateString)
+  return date.toLocaleDateString('fr-FR', { month: 'short' }).toUpperCase()
 }
 
 const formatTime = (dateString) => {
-  return new Date(dateString).toLocaleTimeString('fr-FR', { 
+  const date = new Date(dateString)
+  return date.toLocaleTimeString('fr-FR', { 
     hour: '2-digit', 
     minute: '2-digit'
   })
