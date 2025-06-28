@@ -6,6 +6,7 @@ type Group struct {
 	Description string `json:"description"`
 	AdminID     string `json:"adminId"`
 	Privacy     string `json:"privacy"`     // "public" or "private"
+	Image       string `json:"image"`       // profile/banner image path
 	MemberCount int    `json:"memberCount"` // total number of members including admin
 
 	Invitations []string `json:"invitations"`

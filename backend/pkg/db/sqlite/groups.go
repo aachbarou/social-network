@@ -15,7 +15,8 @@ func (repo *GroupRepository) GetAllAndRelations(userID string) ([]models.Group, 
 		SELECT 
 			group_id, 
 			name, 
-			privacy, 
+			privacy,
+			image,
 			(SELECT COUNT(*) FROM group_users WHERE group_users.group_id = groups.group_id AND group_users.user_id = ?) as member, 
 			administrator = ? as admin,
 			(SELECT COUNT(*) FROM group_users WHERE group_users.group_id = groups.group_id) as member_count
@@ -28,7 +29,11 @@ func (repo *GroupRepository) GetAllAndRelations(userID string) ([]models.Group, 
 		var group models.Group
 		var member int
 		var admin int
-		rows.Scan(&group.ID, &group.Name, &group.Privacy, &member, &admin, &group.MemberCount)
+		var image sql.NullString
+		rows.Scan(&group.ID, &group.Name, &group.Privacy, &image, &member, &admin, &group.MemberCount)
+		if image.Valid {
+			group.Image = image.String
+		}
 		if member != 0 || admin != 0 { // Admin is also considered a member
 			group.Member = true
 		}
@@ -46,7 +51,8 @@ func (repo *GroupRepository) GetUserGroups(userID string) ([]models.Group, error
 		SELECT 
 			group_id, 
 			name, 
-			privacy, 
+			privacy,
+			image,
 			administrator = ? as admin,
 			(SELECT COUNT(*) FROM group_users WHERE group_users.group_id = groups.group_id) as member_count
 		FROM groups 
@@ -59,7 +65,11 @@ func (repo *GroupRepository) GetUserGroups(userID string) ([]models.Group, error
 	for rows.Next() {
 		var group models.Group
 		var admin int
-		rows.Scan(&group.ID, &group.Name, &group.Privacy, &admin, &group.MemberCount)
+		var image sql.NullString
+		rows.Scan(&group.ID, &group.Name, &group.Privacy, &image, &admin, &group.MemberCount)
+		if image.Valid {
+			group.Image = image.String
+		}
 		if admin != 0 {
 			group.Administrator = true
 		} else {
@@ -71,11 +81,11 @@ func (repo *GroupRepository) GetUserGroups(userID string) ([]models.Group, error
 }
 
 func (repo *GroupRepository) New(group models.Group) error {
-	stmt, err := repo.DB.Prepare("INSERT INTO groups (group_id, name, description, administrator, privacy) values (?,?,?,?,?)")
+	stmt, err := repo.DB.Prepare("INSERT INTO groups (group_id, name, description, administrator, privacy, image) values (?,?,?,?,?,?)")
 	if err != nil {
 		return err
 	}
-	if _, err := stmt.Exec(group.ID, group.Name, group.Description, group.AdminID, group.Privacy); err != nil {
+	if _, err := stmt.Exec(group.ID, group.Name, group.Description, group.AdminID, group.Privacy, group.Image); err != nil {
 		return err
 	}
 
@@ -98,13 +108,18 @@ func (repo *GroupRepository) GetData(groupId string) (models.Group, error) {
 			description, 
 			administrator, 
 			privacy,
+			image,
 			(SELECT COUNT(*) FROM group_users WHERE group_users.group_id = ?) as member_count
 		FROM groups 
 		WHERE group_id = ?
 	`, groupId, groupId)
 	var group models.Group
-	if err := row.Scan(&group.Name, &group.Description, &group.AdminID, &group.Privacy, &group.MemberCount); err != nil {
+	var image sql.NullString
+	if err := row.Scan(&group.Name, &group.Description, &group.AdminID, &group.Privacy, &image, &group.MemberCount); err != nil {
 		return group, err
+	}
+	if image.Valid {
+		group.Image = image.String
 	}
 	group.ID = groupId
 	return group, nil

@@ -178,22 +178,26 @@ const handleSubmit = async () => {
   loading.value = true
   
   try {
-    const groupData = {
-      name: form.name.trim(),
-      description: form.description.trim(),
-      privacy: form.privacy,
-      invitations: [] // Can be extended later for inviting users
+    // Create FormData for file upload
+    const formData = new FormData()
+    formData.append('name', form.name.trim())
+    formData.append('description', form.description.trim())
+    formData.append('privacy', form.privacy)
+    
+    // Add image if selected
+    if (form.image) {
+      formData.append('image', form.image)
     }
+    
+    // Add invitations as JSON string
+    formData.append('invitations', JSON.stringify([]))
 
-    console.log('Creating group with data:', groupData)
+    console.log('Creating group with FormData')
 
     const response = await fetch('http://localhost:8081/newGroup', {
       method: 'POST',
       credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(groupData)
+      body: formData // Don't set Content-Type header, let browser set it with boundary
     })
 
     console.log('Response status:', response.status)
@@ -243,13 +247,24 @@ const handleSubmit = async () => {
   overflow-y: auto;
   backdrop-filter: blur(20px);
   
-  /* Hide scrollbar for Chromium browsers (Chrome, Safari, Edge) */
+  /* Hide scrollbar for all browsers */
   scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* Internet Explorer and Edge */
+  -ms-overflow-style: none; /* Internet Explorer and Edge Legacy */
+  scrollbar-color: transparent transparent; /* Firefox fallback */
 }
 
 .modal-content::-webkit-scrollbar {
-  display: none; /* Chromium browsers */
+  display: none; /* Chromium browsers (Chrome, Safari, Edge Chromium) */
+  width: 0;
+  height: 0;
+}
+
+.modal-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.modal-content::-webkit-scrollbar-thumb {
+  background: transparent;
 }
 
 .modal-header {

@@ -360,13 +360,43 @@ func (handler *Handler) NewGroup(wsServer *ws.Server, w http.ResponseWriter, r *
 		return
 	}
 	/* ---------------------------- read incoming data --------------------------- */
-	// Try to decode the JSON request to a new Group
-	var newGroup models.Group
-	err := json.NewDecoder(r.Body).Decode(&newGroup)
+	// Parse multipart form data
+	err := r.ParseMultipartForm(10 << 20) // 10 MB max
 	if err != nil {
-		utils.RespondWithError(w, "Error on form submittion", 200)
+		utils.RespondWithError(w, "Error parsing form data", 200)
 		return
 	}
+
+	// Create new group from form data
+	var newGroup models.Group
+	newGroup.Name = r.FormValue("name")
+	newGroup.Description = r.FormValue("description")
+	newGroup.Privacy = r.FormValue("privacy")
+	
+	// Handle image upload
+	file, fileHeader, err := r.FormFile("image")
+	if err == nil && file != nil {
+		defer file.Close()
+		
+		// Save the uploaded file
+		imagePath, err := utils.SaveUploadedFile(file, fileHeader, "imageUpload")
+		if err != nil {
+			utils.RespondWithError(w, "Error saving image", 200)
+			return
+		}
+		newGroup.Image = imagePath
+	}
+
+	// Parse invitations JSON if provided
+	invitationsJSON := r.FormValue("invitations")
+	if invitationsJSON != "" {
+		err = json.Unmarshal([]byte(invitationsJSON), &newGroup.Invitations)
+		if err != nil {
+			utils.RespondWithError(w, "Error parsing invitations", 200)
+			return
+		}
+	}
+
 	/* ------------------------- attach addidtional data ------------------------ */
 	// access user id
 	newGroup.AdminID = r.Context().Value(utils.UserKey).(string)

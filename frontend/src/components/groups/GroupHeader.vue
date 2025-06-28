@@ -1,43 +1,44 @@
 <template>
   <div class="group-header">
-    <div class="group-info">
-      <div class="group-avatar">
-        <img v-if="group.image" :src="group.image" :alt="group.name" />
-        <div v-else class="default-avatar">
-          <span class="group-icon">👥</span>
+    <!-- Banner Background -->
+    <div class="group-banner" :style="bannerStyle">
+      <div class="banner-overlay"></div>
+      <div class="banner-content">
+        <div class="group-info">
+          <div class="group-details">
+            <h1>{{ group.name }}</h1>
+            <p v-if="group.description" class="group-description">{{ group.description }}</p>
+            <div class="group-meta">
+              <span class="member-count">
+                <span class="icon">👤</span>
+                {{ group.memberCount || 0 }} membres
+              </span>
+              <span class="group-privacy" :class="group.privacy">
+                <span class="icon">{{ group.privacy === 'public' ? '🌐' : '🔒' }}</span>
+                {{ group.privacy === 'public' ? 'Public' : 'Privé' }}
+              </span>
+            </div>
+          </div>
         </div>
-      </div>
-      <div class="group-details">
-        <h1>{{ group.name }}</h1>
-        <p v-if="group.description">{{ group.description }}</p>
-        <div class="group-meta">
-          <span class="member-count">
-            <span class="icon">👤</span>
-            {{ group.memberCount || 0 }} membres
-          </span>
-          <span class="group-privacy">
-            <span class="icon">{{ group.privacy === 'public' ? '🌐' : '🔒' }}</span>
-            {{ group.privacy === 'public' ? 'Public' : 'Privé' }}
-          </span>
-        </div>
+        
+        <GroupActions 
+          :group="group"
+          :is-member="isMember"
+          :is-admin="isAdmin"
+          @join="$emit('join')"
+          @leave="$emit('leave')"
+          @chat="$emit('chat')"
+        />
       </div>
     </div>
-    
-    <GroupActions 
-      :group="group"
-      :is-member="isMember"
-      :is-admin="isAdmin"
-      @join="$emit('join')"
-      @leave="$emit('leave')"
-      @chat="$emit('chat')"
-    />
   </div>
 </template>
 
 <script setup>
+import { computed } from 'vue'
 import GroupActions from './GroupActions.vue'
 
-defineProps({
+const props = defineProps({
   group: {
     type: Object,
     required: true
@@ -53,95 +54,184 @@ defineProps({
 })
 
 defineEmits(['join', 'leave', 'chat'])
+
+const bannerStyle = computed(() => {
+  if (props.group.image) {
+    // Convert backend file path to full URL
+    const imageUrl = props.group.image.startsWith('http') 
+      ? props.group.image 
+      : `http://localhost:8081/${props.group.image}`
+    
+    return {
+      '--banner-image': `url("${imageUrl}")`
+    }
+  }
+  return {
+    '--banner-image': 'none'
+  }
+})
 </script>
 
 <style scoped>
 .group-header {
-  background: rgba(15, 15, 23, 0.8);
-  border-radius: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 30px;
   margin-bottom: 30px;
+  width: 100%;
+}
+
+.group-banner {
+  position: relative;
+  width: 100%;
+  height: 300px;
+  border-radius: 20px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-sizing: border-box;
+  background: var(--banner-image, linear-gradient(135deg, #e879c6 0%, #78c7ff 100%));
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+}
+
+.banner-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    to bottom, 
+    rgba(0, 0, 0, 0.3) 0%, 
+    rgba(0, 0, 0, 0.5) 70%, 
+    rgba(0, 0, 0, 0.8) 100%
+  );
+  backdrop-filter: blur(1px);
+}
+
+.banner-content {
+  position: relative;
+  z-index: 2;
+  height: 100%;
   display: flex;
+  align-items: end;
   justify-content: space-between;
-  align-items: center;
+  padding: 25px 30px;
+  color: white;
 }
 
 .group-info {
-  display: flex;
-  gap: 20px;
-  align-items: center;
-}
-
-.group-avatar {
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
-  overflow: hidden;
-  flex-shrink: 0;
-}
-
-.group-avatar img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.default-avatar {
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(135deg, #e879c6 0%, #78c7ff 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.group-icon {
-  font-size: 2.5rem;
-  opacity: 0.8;
+  flex: 1;
 }
 
 .group-details h1 {
-  font-size: 2rem;
-  font-weight: 700;
+  font-size: 2.5rem;
+  font-weight: 800;
   color: white;
   margin: 0 0 8px 0;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+  line-height: 1.2;
 }
 
-.group-details p {
-  color: rgba(255, 255, 255, 0.7);
-  margin: 0 0 12px 0;
+.group-description {
+  font-size: 1.1rem;
+  color: rgba(255, 255, 255, 0.9);
+  margin: 0 0 16px 0;
+  line-height: 1.5;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
+  max-width: 600px;
 }
 
 .group-meta {
   display: flex;
-  gap: 16px;
+  gap: 24px;
+  flex-wrap: wrap;
 }
 
 .member-count,
 .group-privacy {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 0.875rem;
-  color: rgba(255, 255, 255, 0.6);
+  gap: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.95);
+  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.8);
+  background: rgba(255, 255, 255, 0.15);
+  padding: 10px 18px;
+  border-radius: 30px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.group-privacy.public {
+  background: rgba(120, 199, 255, 0.15);
+  border-color: rgba(120, 199, 255, 0.3);
+}
+
+.group-privacy.private {
+  background: rgba(232, 121, 198, 0.15);
+  border-color: rgba(232, 121, 198, 0.3);
 }
 
 .icon {
-  font-size: 0.875rem;
+  font-size: 1.1em;
 }
 
-/* Responsive */
+/* Responsive Design */
 @media (max-width: 768px) {
-  .group-header {
-    flex-direction: column;
-    gap: 20px;
-    text-align: center;
+  .group-banner {
+    height: 250px;
   }
   
-  .group-info {
+  .banner-content {
     flex-direction: column;
-    text-align: center;
+    align-items: stretch;
+    gap: 16px;
+    padding: 14px 16px;
+  }
+  
+  .group-details h1 {
+    font-size: 2rem;
+  }
+  
+  .group-description {
+    font-size: 1rem;
+  }
+  
+  .group-meta {
+    gap: 12px;
+  }
+  
+  .member-count,
+  .group-privacy {
+    font-size: 0.9rem;
+    padding: 8px 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .group-banner {
+    height: 200px;
+    border-radius: 16px;
+  }
+  
+  .banner-content {
+    padding: 12px 14px;
+  }
+  
+  .group-details h1 {
+    font-size: 1.75rem;
+  }
+  
+  .group-meta {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .member-count,
+  .group-privacy {
+    padding: 6px 12px;
+    font-size: 0.85rem;
   }
 }
 </style>

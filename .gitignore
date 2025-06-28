@@ -1,1 +1,7 @@
 GROUPS_FEATURE_SUMMARY.md
+
+# Air hot reload files
+backend/tmp/
+backend/.air.toml
+backend/build-errors.log
+tmp/

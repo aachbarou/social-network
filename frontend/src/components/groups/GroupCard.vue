@@ -4,11 +4,11 @@
     <div class="group-image">
       <img 
         v-if="group.image" 
-        :src="group.image" 
+        :src="imageUrl" 
         :alt="group.name"
         @error="handleImageError"
       />
-      <div v-else class="default-image">
+      <div class="default-image" :class="{ 'hidden': group.image }">
         <span class="group-icon">👥</span>
       </div>
     </div>
@@ -111,9 +111,26 @@ const privacyLabel = computed(() => {
   return props.group.privacy === 'public' ? 'Public' : 'Privé'
 })
 
+const imageUrl = computed(() => {
+  if (!props.group.image) return ''
+  // Convert backend file path to full URL
+  if (props.group.image.startsWith('http')) {
+    return props.group.image
+  }
+  return `http://localhost:8081/${props.group.image}`
+})
+
 const handleImageError = (event) => {
-  event.target.style.display = 'none'
-  event.target.nextElementSibling.style.display = 'flex'
+  // Hide the broken image and show the default icon
+  const img = event.target
+  const defaultImage = img.parentElement.querySelector('.default-image')
+  
+  if (img) {
+    img.style.display = 'none'
+  }
+  if (defaultImage) {
+    defaultImage.style.display = 'flex'
+  }
 }
 
 const handleJoinRequest = async () => {
@@ -169,6 +186,10 @@ const handleJoinRequest = async () => {
 .group-icon {
   font-size: 2rem;
   opacity: 0.8;
+}
+
+.default-image.hidden {
+  display: none;
 }
 
 .group-info {

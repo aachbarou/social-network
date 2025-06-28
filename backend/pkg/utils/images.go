@@ -2,6 +2,7 @@ package utils
 
 import (
 	"io/ioutil"
+	"mime/multipart"
 	"net/http"
 	"os"
 	"strings"
@@ -81,6 +82,51 @@ func createTempFile(fileType string) (*os.File, error) {
 		localFile, err = ioutil.TempFile("imageUpload", "*.png")
 	case "image/gif":
 		localFile, err = ioutil.TempFile("imageUpload", "*.gif")
+	default:
+		return localFile, err
+	}
+	return localFile, nil
+}
+
+// SaveUploadedFile saves an uploaded file to the specified directory
+// returns the file path relative to the project root
+func SaveUploadedFile(file multipart.File, fileHeader *multipart.FileHeader, directory string) (string, error) {
+	// get content type -> png, gif or jpeg
+	contentType := fileHeader.Header["Content-Type"][0]
+
+	// Create empty local file with correct file extension in specified directory
+	localFile, err := createTempFileInDir(contentType, directory)
+	if err != nil {
+		return "", err
+	}
+	defer localFile.Close()
+
+	// read data in new file
+	fileData, err := ioutil.ReadAll(file)
+	if err != nil {
+		return "", err
+	}
+
+	_, err = localFile.Write(fileData)
+	if err != nil {
+		return "", err
+	}
+
+	return strings.Replace(localFile.Name(), "\\", "/", -1), nil
+}
+
+// creates empty local file based on file type in specified directory
+func createTempFileInDir(fileType, directory string) (*os.File, error) {
+	var localFile *os.File
+	var err error
+
+	switch fileType {
+	case "image/jpeg":
+		localFile, err = ioutil.TempFile(directory, "*.jpg")
+	case "image/png":
+		localFile, err = ioutil.TempFile(directory, "*.png")
+	case "image/gif":
+		localFile, err = ioutil.TempFile(directory, "*.gif")
 	default:
 		return localFile, err
 	}
