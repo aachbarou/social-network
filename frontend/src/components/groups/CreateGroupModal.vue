@@ -233,6 +233,7 @@ const handleSubmit = async () => {
 }
 
 .modal-content {
+  margin-top: auto;
   background: rgba(15, 15, 23, 0.95);
   border-radius: 20px;
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -241,6 +242,14 @@ const handleSubmit = async () => {
   max-height: 90vh;
   overflow-y: auto;
   backdrop-filter: blur(20px);
+  
+  /* Hide scrollbar for Chromium browsers (Chrome, Safari, Edge) */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* Internet Explorer and Edge */
+}
+
+.modal-content::-webkit-scrollbar {
+  display: none; /* Chromium browsers */
 }
 
 .modal-header {

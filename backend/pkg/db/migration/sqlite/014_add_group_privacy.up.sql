@@ -1,0 +1,1 @@
+ALTER TABLE groups ADD COLUMN privacy VARCHAR(255) DEFAULT 'public';
