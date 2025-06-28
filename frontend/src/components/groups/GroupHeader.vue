@@ -66,8 +66,29 @@ const bannerStyle = computed(() => {
       '--banner-image': `url("${imageUrl}")`
     }
   }
+  
+  // Use random banner if no image uploaded
+  const randomBanners = [
+    '/src/assets/randoms/random1.gif',
+    '/src/assets/randoms/random2.gif',
+    '/src/assets/randoms/random3.gif',
+    '/src/assets/randoms/random4.gif',
+    '/src/assets/randoms/random5.gif',
+    '/src/assets/randoms/random6.gif',
+    '/src/assets/randoms/random7.gif',
+    '/src/assets/randoms/random8.gif'
+  ]
+  
+  // Generate consistent random index based on group name/id to avoid changing on each render
+  const groupIdentifier = props.group.name || props.group.id || 'default'
+  const hash = groupIdentifier.split('').reduce((a, b) => {
+    a = ((a << 5) - a) + b.charCodeAt(0)
+    return a & a
+  }, 0)
+  const randomIndex = Math.abs(hash) % randomBanners.length
+  
   return {
-    '--banner-image': 'none'
+    '--banner-image': `url("${randomBanners[randomIndex]}")`
   }
 })
 </script>
@@ -86,7 +107,7 @@ const bannerStyle = computed(() => {
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.1);
   box-sizing: border-box;
-  background: var(--banner-image, linear-gradient(135deg, #e879c6 0%, #78c7ff 100%));
+  background: var(--banner-image);
   background-size: cover;
   background-position: center center;
   background-repeat: no-repeat;

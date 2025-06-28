@@ -3,14 +3,10 @@
     <!-- Group Image -->
     <div class="group-image">
       <img 
-        v-if="group.image" 
-        :src="imageUrl" 
+        :src="displayImageUrl" 
         :alt="group.name"
         @error="handleImageError"
       />
-      <div class="default-image" :class="{ 'hidden': group.image }">
-        <span class="group-icon">👥</span>
-      </div>
     </div>
 
     <!-- Group Info -->
@@ -120,16 +116,40 @@ const imageUrl = computed(() => {
   return `http://localhost:8081/${props.group.image}`
 })
 
-const handleImageError = (event) => {
-  // Hide the broken image and show the default icon
-  const img = event.target
-  const defaultImage = img.parentElement.querySelector('.default-image')
-  
-  if (img) {
-    img.style.display = 'none'
+const displayImageUrl = computed(() => {
+  if (props.group.image) {
+    return imageUrl.value
   }
-  if (defaultImage) {
-    defaultImage.style.display = 'flex'
+  
+  // Use random banner if no image uploaded
+  const randomBanners = [
+    '/src/assets/randoms/random1.gif',
+    '/src/assets/randoms/random2.gif',
+    '/src/assets/randoms/random3.gif',
+    '/src/assets/randoms/random4.gif',
+    '/src/assets/randoms/random5.gif',
+    '/src/assets/randoms/random6.gif',
+    '/src/assets/randoms/random7.gif',
+    '/src/assets/randoms/random8.gif'
+  ]
+  
+  // Generate consistent random index based on group name/id
+  const groupIdentifier = props.group.name || props.group.id || 'default'
+  const hash = groupIdentifier.split('').reduce((a, b) => {
+    a = ((a << 5) - a) + b.charCodeAt(0)
+    return a & a
+  }, 0)
+  const randomIndex = Math.abs(hash) % randomBanners.length
+  
+  return randomBanners[randomIndex]
+})
+
+const handleImageError = (event) => {
+  // If the random banner fails to load, try a fallback
+  const img = event.target
+  if (img.src.includes('random')) {
+    // Fallback to a different random banner
+    img.src = '/src/assets/randoms/random1.gif'
   }
 }
 
@@ -171,25 +191,6 @@ const handleJoinRequest = async () => {
   width: 100%;
   height: 100%;
   object-fit: cover;
-}
-
-.default-image {
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(135deg, #e879c6 0%, #78c7ff 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-}
-
-.group-icon {
-  font-size: 2rem;
-  opacity: 0.8;
-}
-
-.default-image.hidden {
-  display: none;
 }
 
 .group-info {

@@ -293,10 +293,10 @@ onUnmounted(() => {
 }
 
 .group-header {
-  background: rgba(15, 15, 23, 0.8);
+  background: rgba(255, 255, 255, 0.1);
   border-radius: 20px;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 30px;
+  /* padding: 30px; */
   margin-bottom: 30px;
   display: flex;
   justify-content: space-between;
