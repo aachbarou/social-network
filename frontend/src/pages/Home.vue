@@ -21,14 +21,15 @@
 
       </div>
       <div class="create-post-actions" v-if="showCreatePost">
-        <button class="action-btn">
+        <label class="action-btn">
+          <input type="file" ref="imageInput" @change="handleImageChange" accept="image/*" style="display: none" />
           <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
             <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
             <circle cx="8.5" cy="8.5" r="1.5"/>
             <polyline points="21,15 16,10 5,21"/>
           </svg>
           Photo
-        </button>
+        </label>
         <button class="action-btn">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
             <polygon points="23 7 16 12 23 17 23 7"/>
@@ -44,6 +45,10 @@
           Sondage
         </button>
         <button class="publish-btn" @click="publishPost">Publier</button>
+      </div>
+      <div v-if="showCreatePost && selectedImage" class="image-preview-container">
+        <img :src="imagePreview" class="image-preview" />
+        <button class="remove-image-btn" @click="removeImage">×</button>
       </div>
     </div>
 
@@ -71,14 +76,18 @@
             </div>
             <div class="post-content">
               <p>{{ post.content }}</p>
-              <div v-if="post.hasImage" class="post-image-placeholder">
-                <svg width="60" height="60" viewBox="0 0 24 24" fill="currentColor">
-                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                  <circle cx="8.5" cy="8.5" r="1.5"/>
-                  <polyline points="21,15 16,10 5,21"/>
-                </svg>
-                <span>Image</span>
+              <div v-if="post.hasImage" class="post-image-container">
+                <img v-if="post.imagePath" :src="getImageUrl(post.imagePath)" class="post-image" alt="Post image" @error="handleImageError" />
+                <div v-else class="post-image-placeholder">
+                  <svg width="60" height="60" viewBox="0 0 24 24" fill="currentColor">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                    <circle cx="8.5" cy="8.5" r="1.5"/>
+                    <polyline points="21,15 16,10 5,21"/>
+                  </svg>
+                  <span>Image</span>
+                </div>
               </div>
+              <pre v-if="false">Debug post: {{ JSON.stringify(post, null, 2) }}</pre>
             </div>
             <div class="post-actions">
               <button class="action-btn">
@@ -87,11 +96,11 @@
                 </svg>
                 {{ post.likes }}
               </button>
-              <button class="action-btn">
+              <button class="action-btn" @click="toggleComments(post.id)">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
                 </svg>
-                {{ post.comments }}
+                {{ post.commentsCount || 0 }}
               </button>
               <button class="action-btn">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
@@ -100,6 +109,53 @@
                 </svg>
                 Partager
               </button>
+            </div>
+            
+            <!-- Comments Section -->
+            <div v-if="activeCommentPostId === post.id" class="comments-section">
+              <div v-if="post.comments && post.comments.length > 0" class="comments-list">
+                <div v-for="comment in post.comments" :key="comment.id" class="comment">
+                  <div class="comment-header">
+                    <div class="user-avatar small">{{ comment.userInitials || 'U' }}</div>
+                    <div class="comment-meta">
+                      <h4 class="comment-user">{{ comment.userName || 'Utilisateur' }}</h4>
+                      <span class="comment-time">{{ new Date(comment.createdAt).toLocaleString() }}</span>
+                    </div>
+                  </div>
+                  <div class="comment-content">
+                    <p>{{ comment.content }}</p>
+                    <img v-if="comment.imagePath" :src="getImageUrl(comment.imagePath)" class="comment-image" @error="handleImageError" />
+                  </div>
+                </div>
+              </div>
+              <div class="comment-form">
+                <div class="user-avatar small">VU</div>
+                <input 
+                  type="text" 
+                  v-model="newCommentText" 
+                  placeholder="Écrire un commentaire..." 
+                  class="comment-input"
+                  @keyup.enter="submitComment(post.id)"
+                />
+                <label class="comment-attach-btn">
+                  <input type="file" @change="handleCommentImageChange" accept="image/*" style="display: none" />
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                    <circle cx="8.5" cy="8.5" r="1.5"/>
+                    <polyline points="21,15 16,10 5,21"/>
+                  </svg>
+                </label>
+                <button class="comment-send-btn" @click="submitComment(post.id)">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M22 2L11 13"></path>
+                    <path d="M22 2l-7 20-4-9-9-4 20-7z"></path>
+                  </svg>
+                </button>
+              </div>
+              <div v-if="commentImagePreview" class="comment-image-preview-container">
+                <img :src="commentImagePreview" class="comment-image-preview" />
+                <button class="remove-image-btn" @click="removeCommentImage">×</button>
+              </div>
             </div>
           </div>
         </div>
@@ -123,36 +179,159 @@ export default {
     // For new post creation
     const newPostContent = ref('');
     const showCreatePost = ref(false);
+    const selectedImage = ref(null);
+    const imagePreview = ref('');
+    const imageInput = ref(null);
+    
+    // For comments
+    const activeCommentPostId = ref(null);
+    const newCommentText = ref('');
+    const commentSelectedImage = ref(null);
+    const commentImagePreview = ref('');
+    
+    const handleImageChange = (event) => {
+      const file = event.target.files[0];
+      if (file) {
+        selectedImage.value = file;
+        imagePreview.value = URL.createObjectURL(file);
+      }
+    };
+    
+    const removeImage = () => {
+      selectedImage.value = null;
+      imagePreview.value = '';
+      if (imageInput.value) {
+        imageInput.value.value = '';
+      }
+    };
+    
+    const handleCommentImageChange = (event) => {
+      const file = event.target.files[0];
+      if (file) {
+        commentSelectedImage.value = file;
+        commentImagePreview.value = URL.createObjectURL(file);
+      }
+    };
+    
+    const removeCommentImage = () => {
+      commentSelectedImage.value = null;
+      commentImagePreview.value = '';
+    };
+    
+    const toggleComments = (postId) => {
+      activeCommentPostId.value = activeCommentPostId.value === postId ? null : postId;
+      newCommentText.value = '';
+      removeCommentImage();
+    };
+    
+    const getImageUrl = (path) => {
+      if (!path) return '';
+      
+      // If the path already includes http:// or https://, use it as is
+      if (path.startsWith('http://') || path.startsWith('https://')) {
+        return path;
+      }
+      
+      // Make sure path doesn't have double slashes when concatenating
+      const cleanPath = path.startsWith('/') ? path.substring(1) : path;
+      return `http://localhost:8081/${cleanPath}`;
+    };
+    
+    const handleImageError = (event) => {
+      console.error('Image failed to load:', event.target.src);
+      // Fall back to placeholder if image fails to load
+      event.target.style.display = 'none';
+      event.target.parentElement.innerHTML += `
+        <div class="post-image-placeholder">
+          <svg width="60" height="60" viewBox="0 0 24 24" fill="currentColor">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+            <circle cx="8.5" cy="8.5" r="1.5"/>
+            <polyline points="21,15 16,10 5,21"/>
+          </svg>
+          <span>Image non disponible</span>
+        </div>
+      `;
+    };
+    
+    const submitComment = async (postId) => {
+      if (!newCommentText.value && !commentSelectedImage.value) return;
+      
+      await mainStore.submitComment(postId, {
+        body: newCommentText.value,
+        image: commentSelectedImage.value
+      });
+      
+      newCommentText.value = '';
+      removeCommentImage();
+    };
+    
     const publishPost = async () => {
+      if (!newPostContent.value && !selectedImage.value) return;
+      
+      console.log("Publishing post with image:", selectedImage.value ? selectedImage.value.name : "No image");
+      
       const formData = new FormData();
       formData.set('body', newPostContent.value);
-      // Add more fields as needed (privacy, groupId, etc.)
-      await fetch('http://localhost:8081/newPost', {
-        method: 'POST',
-        credentials: 'include',
-        body: formData
-      });
-      newPostContent.value = '';
-      showCreatePost.value = false;
-      await mainStore.fetchPosts();
+      if (selectedImage.value) {
+        formData.append('image', selectedImage.value);
+        console.log("Image added to form data:", selectedImage.value.name);
+      }
+      
+      try {
+        const response = await fetch('http://localhost:8081/newPost', {
+          method: 'POST',
+          credentials: 'include',
+          body: formData
+        });
+        
+        const result = await response.json();
+        console.log("Post creation response:", result);
+        
+        if (!response.ok) {
+          console.error("Error creating post:", result);
+          alert("Erreur lors de la création du post: " + (result.message || "Erreur inconnue"));
+          return;
+        }
+        
+        newPostContent.value = '';
+        removeImage();
+        showCreatePost.value = false;
+        await mainStore.fetchPosts();
+      } catch (error) {
+        console.error("Post creation failed:", error);
+        alert("Erreur de connexion lors de la création du post");
+      }
     };
     
     const formattedPosts = computed(() => {
       // Ensure posts.value is always an array
       const arr = Array.isArray(posts.value) ? posts.value : [];
-      return arr
+      
+      const formattedArr = arr
         .filter(post => post) // filter out nulls
-        .map(post => ({
-
-          id: post.id,
-          userName: post.author?.nickname || 'Utilisateur',
-          userInitials: post.author?.nickname ? post.author.nickname.slice(0,2).toUpperCase() : '??',
-          timeAgo: post.createdAt ? new Date(post.createdAt).toLocaleString() : '',
-          content: post.content,
-          hasImage: !!post.imagePath,
-          likes: post.likes || 0,
-          comments: post.comments ? post.comments.length : 0
-        }));
+        .map(post => {
+          console.log("Formatting post:", post);
+          
+          // Check for image path in various possible formats
+          const imagePath = post.imagePath || post.image || (post.images && post.images.length > 0 ? post.images[0] : null);
+          console.log(`Post ${post.id} final image path:`, imagePath);
+          
+          return {
+            id: post.id,
+            userName: post.author?.nickname || 'Utilisateur',
+            userInitials: post.author?.nickname ? post.author.nickname.slice(0,2).toUpperCase() : '??',
+            timeAgo: post.createdAt ? new Date(post.createdAt).toLocaleString() : '',
+            content: post.content,
+            hasImage: !!imagePath,
+            imagePath: imagePath,
+            likes: post.likes || 0,
+            comments: post.comments || [],
+            commentsCount: post.comments ? post.comments.length : 0
+          };
+        });
+      
+      console.log("Final formatted posts:", formattedArr);
+      return formattedArr;
     });
     
     return {
@@ -160,8 +339,23 @@ export default {
       mainStore,
       newPostContent,
       showCreatePost,
+      selectedImage,
+      imagePreview,
+      imageInput,
+      handleImageChange,
+      removeImage,
       publishPost,
-      formattedPosts
+      formattedPosts,
+      activeCommentPostId,
+      newCommentText,
+      commentSelectedImage,
+      commentImagePreview,
+      toggleComments,
+      submitComment,
+      handleCommentImageChange,
+      removeCommentImage,
+      getImageUrl,
+      handleImageError
     };
   },
   data() {
@@ -409,6 +603,159 @@ export default {
 
 .post-actions .action-btn:hover {
   background: rgba(255, 255, 255, 0.05);
+}
+
+.image-preview-container {
+  position: relative;
+  margin-top: 15px;
+}
+
+.image-preview {
+  width: 100%;
+  max-height: 250px;
+  border-radius: 12px;
+  object-fit: cover;
+}
+
+.remove-image-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.remove-image-btn:hover {
+  background: rgba(255, 0, 0, 0.7);
+  transform: scale(1.1);
+}
+
+.comments-section {
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.comments-list {
+  margin-bottom: 15px;
+}
+
+.comment {
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 12px;
+  padding: 12px;
+  margin-bottom: 10px;
+}
+
+.comment-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.user-avatar.small {
+  width: 30px;
+  height: 30px;
+  font-size: 12px;
+}
+
+.comment-meta {
+  flex: 1;
+}
+
+.comment-user {
+  font-size: 0.85rem;
+  margin: 0 0 2px 0;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.comment-time {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.comment-content p {
+  font-size: 0.9rem;
+  margin: 0 0 8px 0;
+}
+
+.comment-image {
+  max-width: 100%;
+  max-height: 150px;
+  border-radius: 8px;
+  margin-top: 8px;
+}
+
+.comment-form {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.comment-input {
+  flex: 1;
+  padding: 8px 15px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+  color: white;
+  font-size: 0.9rem;
+}
+
+.comment-input:focus {
+  outline: none;
+  border-color: #e879c6;
+  box-shadow: 0 0 0 2px rgba(232, 121, 198, 0.2);
+}
+
+.comment-attach-btn,
+.comment-send-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.7);
+  transition: all 0.2s ease;
+}
+
+.comment-attach-btn:hover,
+.comment-send-btn:hover {
+  background: rgba(232, 121, 198, 0.1);
+  border-color: rgba(232, 121, 198, 0.3);
+  color: #e879c6;
+}
+
+.comment-send-btn {
+  background: linear-gradient(135deg, #e879c6 0%, #78c7ff 100%);
+  border: none;
+  color: #000000;
+}
+
+.comment-image-preview-container {
+  margin-top: 10px;
+  position: relative;
+  width: 150px;
+}
+
+.comment-image-preview {
+  width: 100%;
+  border-radius: 8px;
 }
 
 /* Mobile Responsive */
