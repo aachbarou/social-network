@@ -40,7 +40,12 @@
             class="btn-primary"
             :disabled="isJoining"
           >
-            <span class="icon">{{ isJoining ? '⏳' : '➕' }}</span>
+            <span 
+              class="icon" 
+              :class="{ 'animate-spin': isJoining }"
+            >
+              {{ isJoining ? '⏳' : '➕' }}
+            </span>
             {{ isJoining ? 'Rejoindre...' : (group.privacy === 'public' ? 'Rejoindre le groupe' : 'Demander à rejoindre') }}
           </button>
           
@@ -286,13 +291,19 @@ const openChat = () => {
 const joinGroup = async () => {
   if (!group.value || isJoining.value) return
   
+  console.log('Starting join process, setting isJoining to true')
   isJoining.value = true
+  
   try {
+    // Add minimum delay to ensure animation is visible
+    const minDelay = new Promise(resolve => setTimeout(resolve, 1000))
+    
     // For public groups, join directly. For private groups, send a request.
     const endpoint = group.value.privacy === 'public' 
       ? 'http://localhost:8081/joinPublicGroup'
       : 'http://localhost:8081/newGroupRequest'
     
+    console.log('Making request to:', endpoint)
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
@@ -303,6 +314,9 @@ const joinGroup = async () => {
         groupId: group.value.id
       })
     })
+
+    // Wait for both the request and minimum delay
+    await minDelay
 
     if (response.ok) {
       if (group.value.privacy === 'public') {
@@ -319,6 +333,7 @@ const joinGroup = async () => {
   } catch (error) {
     console.error('Error joining group:', error)
   } finally {
+    console.log('Join process finished, setting isJoining to false')
     isJoining.value = false
   }
 }
@@ -386,6 +401,10 @@ onMounted(() => {
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite !important;
 }
 
 .error-icon,
