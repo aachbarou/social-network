@@ -1,173 +1,49 @@
 <template>
   <div class="group-view">
     <!-- Loading State -->
-    <div v-if="loading" class="loading-state">
+    <div v-if="groupStore.loading" class="loading-state">
       <div class="spinner"></div>
       <p>Chargement du groupe...</p>
     </div>
 
     <!-- Group Content -->
-    <div v-else-if="group" class="group-content">
+    <div v-else-if="groupStore.currentGroup" class="group-content">
       <!-- Header -->
-      <div class="group-header">
-        <div class="group-info">
-          <div class="group-avatar">
-            <img v-if="group.image" :src="group.image" :alt="group.name" />
-            <div v-else class="default-avatar">
-              <span class="group-icon">👥</span>
-            </div>
-          </div>
-          <div class="group-details">
-            <h1>{{ group.name }}</h1>
-            <p v-if="group.description">{{ group.description }}</p>
-            <div class="group-meta">
-              <span class="member-count">
-                <span class="icon">👤</span>
-                {{ group.memberCount || 0 }} membres
-              </span>
-              <span class="group-privacy">
-                <span class="icon">{{ group.privacy === 'public' ? '🌐' : '🔒' }}</span>
-                {{ group.privacy === 'public' ? 'Public' : 'Privé' }}
-              </span>
-            </div>
-          </div>
-        </div>
-        <div class="group-actions">
-          <!-- Join button for non-members of public groups -->
-          <button 
-            v-if="canJoinGroup"
-            @click="joinGroup" 
-            class="btn-primary"
-            :disabled="isJoining"
-          >
-            <span 
-              class="icon" 
-              :class="{ 'animate-spin': isJoining }"
-            >
-              {{ isJoining ? '⏳' : '➕' }}
-            </span>
-            {{ isJoining ? 'Rejoindre...' : (group.privacy === 'public' ? 'Rejoindre le groupe' : 'Demander à rejoindre') }}
-          </button>
-          
-          <!-- Chat button for members -->
-          <button 
-            v-if="userMembership.isMember || userMembership.isAdmin"
-            @click="openChat" 
-            class="btn-primary"
-          >
-            <span class="icon">💬</span>
-            Chat
-          </button>
-          
-          <!-- Leave button for members (not admins) -->
-          <button 
-            v-if="canLeaveGroup"
-            @click="showLeaveConfirmation" 
-            class="btn-icon btn-danger"
-            :disabled="isLeaving"
-            title="Quitter le groupe"
-          >
-            <span 
-              class="icon" 
-              :class="{ 'animate-spin': isLeaving }"
-            >
-              {{ isLeaving ? '⏳' : '🚪' }}
-            </span>
-          </button>
-          
-          <button @click="$router.go(-1)" class="btn-secondary">
-            <span class="icon">←</span>
-            Retour
-          </button>
-        </div>
-      </div>
+      <GroupHeader 
+        :group="groupStore.currentGroup"
+        :is-member="groupStore.isCurrentUserMember"
+        :is-admin="groupStore.isCurrentUserAdmin"
+        @join="handleJoinGroup"
+        @leave="showLeaveConfirmation"
+        @chat="openChat"
+      />
 
       <!-- Navigation Tabs -->
-      <div class="tabs-container">
-        <button 
-          v-for="tab in tabs" 
-          :key="tab.id"
-          @click="activeTab = tab.id"
-          :class="['tab-btn', { active: activeTab === tab.id }]"
-        >
-          <span class="icon">{{ tab.icon }}</span>
-          {{ tab.label }}
-        </button>
-      </div>
+      <GroupTabs 
+        :active-tab="activeTab"
+        :tabs="tabs"
+        @tab-change="activeTab = $event"
+      />
 
       <!-- Tab Content -->
       <div class="tab-content">
         <!-- Posts Tab -->
-        <div v-if="activeTab === 'posts'" class="posts-section">
-          <div v-if="posts.length === 0" class="empty-state">
-            <span class="empty-icon">📝</span>
-            <h3>Aucun post</h3>
-            <p>Soyez le premier à publier dans ce groupe</p>
-          </div>
-          <div v-else class="posts-list">
-            <div v-for="post in posts" :key="post.id" class="post-card">
-              <div class="post-header">
-                <div class="author-avatar">
-                  <img v-if="post.author.profilePic" :src="post.author.profilePic" :alt="post.author.name" />
-                  <span v-else class="default-author">👤</span>
-                </div>
-                <div class="post-info">
-                  <h4>{{ post.author.firstName }} {{ post.author.lastName }}</h4>
-                  <span class="post-date">{{ formatDate(post.createdAt) }}</span>
-                </div>
-              </div>
-              <div class="post-content">
-                <p>{{ post.content }}</p>
-                <img v-if="post.image" :src="post.image" :alt="post.content" class="post-image" />
-              </div>
-            </div>
-          </div>
-        </div>
+        <GroupPosts 
+          v-if="activeTab === 'posts'"
+          :posts="groupStore.currentGroupPosts"
+        />
 
         <!-- Members Tab -->
-        <div v-if="activeTab === 'members'" class="members-section">
-          <div v-if="members.length === 0" class="empty-state">
-            <span class="empty-icon">👥</span>
-            <h3>Aucun membre</h3>
-            <p>Ce groupe n'a pas encore de membres</p>
-          </div>
-          <div v-else class="members-grid">
-            <div v-for="member in members" :key="member.id" class="member-card">
-              <div class="member-avatar">
-                <img v-if="member.profilePic" :src="member.profilePic" :alt="member.name" />
-                <span v-else class="default-member">👤</span>
-              </div>
-              <div class="member-info">
-                <h4>{{ member.firstName }} {{ member.lastName }} <span v-if="member.following" class="admin-crown">👑</span></h4>
-              </div>
-            </div>
-          </div>
-        </div>
+        <GroupMembers 
+          v-if="activeTab === 'members'"
+          :members="groupStore.currentGroupMembers"
+        />
 
         <!-- Events Tab -->
-        <div v-if="activeTab === 'events'" class="events-section">
-          <div v-if="events.length === 0" class="empty-state">
-            <span class="empty-icon">📅</span>
-            <h3>Aucun événement</h3>
-            <p>Aucun événement prévu pour ce groupe</p>
-          </div>
-          <div v-else class="events-list">
-            <div v-for="event in events" :key="event.id" class="event-card">
-              <div class="event-date">
-                <span class="day">{{ formatEventDay(event.date) }}</span>
-                <span class="month">{{ formatEventMonth(event.date) }}</span>
-              </div>
-              <div class="event-info">
-                <h4>{{ event.title }}</h4>
-                <p>{{ event.description }}</p>
-                <span class="event-time">
-                  <span class="icon">🕐</span>
-                  {{ formatEventTime(event.date) }}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
+        <GroupEvents 
+          v-if="activeTab === 'events'"
+          :events="groupStore.currentGroupEvents"
+        />
       </div>
     </div>
 
@@ -182,253 +58,69 @@
     </div>
 
     <!-- Leave Group Confirmation Modal -->
-    <div v-if="showLeaveModal" class="modal-overlay" @click="cancelLeave">
-      <div class="modal-content" @click.stop>
-        <div class="modal-header">
-          <h3>Quitter le groupe</h3>
-        </div>
-        <div class="modal-body">
-          <p>Êtes-vous sûr de vouloir quitter le groupe <strong>{{ group?.name }}</strong> ?</p>
-          <p class="warning-text">Cette action ne peut pas être annulée.</p>
-        </div>
-        <div class="modal-actions">
-          <button @click="cancelLeave" class="btn-secondary">
-            Annuler
-          </button>
-          <button @click="confirmLeave" class="btn-danger" :disabled="isLeaving">
-            <span 
-              class="icon" 
-              :class="{ 'animate-spin': isLeaving }"
-            >
-              {{ isLeaving ? '⏳' : '🚪' }}
-            </span>
-            {{ isLeaving ? 'Quitter...' : 'Quitter' }}
-          </button>
-        </div>
-      </div>
-    </div>
+    <LeaveGroupModal 
+      v-if="showLeaveModal"
+      :group="groupStore.currentGroup"
+      @confirm="handleLeaveGroup"
+      @cancel="showLeaveModal = false"
+    />
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useGroupStore } from '../stores/groupStore'
+
+// Components
+import GroupHeader from '../components/groups/GroupHeader.vue'
+import GroupTabs from '../components/groups/GroupTabs.vue'
+import GroupPosts from '../components/groups/GroupPosts.vue'
+import GroupMembers from '../components/groups/GroupMembers.vue'
+import GroupEvents from '../components/groups/GroupEvents.vue'
+import LeaveGroupModal from '../components/groups/LeaveGroupModal.vue'
 
 const route = useRoute()
 const router = useRouter()
+const groupStore = useGroupStore()
 
 // State
-const loading = ref(true)
-const group = ref(null)
 const activeTab = ref('posts')
-const posts = ref([])
-const members = ref([])
-const events = ref([])
-const isJoining = ref(false)
-const isLeaving = ref(false)
 const showLeaveModal = ref(false)
-const userMembership = ref({
-  isMember: false,
-  isAdmin: false
-})
 
-// Tabs
+// Computed
 const tabs = computed(() => [
   { id: 'posts', label: 'Posts', icon: '📝' },
   { id: 'members', label: 'Membres', icon: '👥' },
   { id: 'events', label: 'Événements', icon: '📅' }
 ])
 
-// Computed
-const canJoinGroup = computed(() => {
-  return group.value && 
-         (group.value.privacy === 'public' || group.value.privacy === 'private') &&
-         !userMembership.value.isMember && 
-         !userMembership.value.isAdmin
-})
-
-const canLeaveGroup = computed(() => {
-  return group.value && 
-         userMembership.value.isMember && 
-         !userMembership.value.isAdmin
-})
-
 // Methods
-const loadGroup = async () => {
-  loading.value = true
-  try {
-    const groupId = route.params.id
-    
-    // Load group details
-    const groupRes = await fetch(`http://localhost:8081/groupInfo?groupId=${groupId}`, {
-      credentials: 'include'
-    })
-    
-    if (groupRes.ok) {
-      const data = await groupRes.json()
-      // Backend returns groups array, take the first one
-      group.value = data.groups && data.groups.length > 0 ? data.groups[0] : null
-      
-      if (group.value) {
-        // Set membership status from the group data itself
-        userMembership.value.isMember = group.value.member || false
-        userMembership.value.isAdmin = group.value.administrator || false
-        
-        // Load group content
-        await loadPosts()
-        await loadMembers()
-        await loadEvents()
-      }
-    } else {
-      group.value = null
-    }
-  } catch (error) {
-    console.error('Error loading group:', error)
-    group.value = null
-  } finally {
-    loading.value = false
-  }
-}
-
-const loadPosts = async () => {
-  try {
-    const postsRes = await fetch(`http://localhost:8081/groupPosts?groupId=${route.params.id}`, {
-      credentials: 'include'
-    })
-    if (postsRes.ok) {
-      const data = await postsRes.json()
-      posts.value = data.posts || []
-    }
-  } catch (error) {
-    console.error('Error loading posts:', error)
-    posts.value = []
-  }
-}
-
-const loadMembers = async () => {
-  try {
-    const membersRes = await fetch(`http://localhost:8081/groupMembers?groupId=${route.params.id}`, {
-      credentials: 'include'
-    })
-    if (membersRes.ok) {
-      const data = await membersRes.json()
-      members.value = data.users || []
-    }
-  } catch (error) {
-    console.error('Error loading members:', error)
-    members.value = []
-  }
-}
-
-const loadEvents = async () => {
-  try {
-    const eventsRes = await fetch(`http://localhost:8081/groupEvents?groupId=${route.params.id}`, {
-      credentials: 'include'
-    })
-    if (eventsRes.ok) {
-      const data = await eventsRes.json()
-      events.value = data.events || []
-    }
-  } catch (error) {
-    console.error('Error loading events:', error)
-    events.value = []
-  }
-}
-
-const openChat = () => {
-  alert(`Chat du groupe ${group.value.name} - Fonctionnalité à implémenter`)
-}
-
-const joinGroup = async () => {
-  if (!group.value || isJoining.value) return
+const loadGroupData = async () => {
+  const groupId = route.params.id
   
-  console.log('Starting join process, setting isJoining to true')
-  isJoining.value = true
+  // Load group details first
+  await groupStore.fetchGroupDetails(groupId)
   
-  try {
-    // Add minimum delay to ensure animation is visible
-    const minDelay = new Promise(resolve => setTimeout(resolve, 1000))
-    
-    // For public groups, join directly. For private groups, send a request.
-    const endpoint = group.value.privacy === 'public' 
-      ? 'http://localhost:8081/joinPublicGroup'
-      : 'http://localhost:8081/newGroupRequest'
-    
-    console.log('Making request to:', endpoint)
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include',
-      body: JSON.stringify({
-        groupId: group.value.id
-      })
-    })
-
-    // Wait for both the request and minimum delay
-    await minDelay
-
-    if (response.ok) {
-      if (group.value.privacy === 'public') {
-        // Successfully joined public group - update membership status and refresh
-        userMembership.value.isMember = true
-        group.value.member = true
-        // Refresh the group data to get updated member count and members list
-        await loadGroup()
-      } else {
-        // For private groups, the request was sent silently
-        // No intrusive popup needed
-      }
-    }
-  } catch (error) {
-    console.error('Error joining group:', error)
-  } finally {
-    console.log('Join process finished, setting isJoining to false')
-    isJoining.value = false
+  if (groupStore.currentGroup) {
+    // Load additional data in parallel
+    await Promise.all([
+      groupStore.fetchGroupPosts(groupId),
+      groupStore.fetchGroupMembers(groupId),
+      groupStore.fetchGroupEvents(groupId)
+    ])
   }
 }
 
-const leaveGroup = async () => {
-  if (!group.value || isLeaving.value) return
+const handleJoinGroup = async () => {
+  const groupId = route.params.id
+  const isPublic = groupStore.currentGroup.privacy === 'public'
   
-  console.log('Starting leave process, setting isLeaving to true')
-  isLeaving.value = true
+  const success = await groupStore.joinGroup(groupId, isPublic)
   
-  try {
-    // Add minimum delay to ensure animation is visible
-    const minDelay = new Promise(resolve => setTimeout(resolve, 1000))
-    
-    console.log('Making request to leave group')
-    const response = await fetch('http://localhost:8081/leaveGroup', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include',
-      body: JSON.stringify({
-        groupId: group.value.id
-      })
-    })
-
-    // Wait for both the request and minimum delay
-    await minDelay
-
-    if (response.ok) {
-      // Successfully left group - update membership status and refresh
-      userMembership.value.isMember = false
-      group.value.member = false
-      // Refresh the group data to get updated member count and members list
-      await loadGroup()
-    } else {
-      console.error('Failed to leave group')
-    }
-  } catch (error) {
-    console.error('Error leaving group:', error)
-  } finally {
-    console.log('Leave process finished, setting isLeaving to false')
-    isLeaving.value = false
-    showLeaveModal.value = false
+  if (success && isPublic) {
+    // Redirect to group page after successful join
+    router.push(`/group/${groupId}`)
   }
 }
 
@@ -436,47 +128,105 @@ const showLeaveConfirmation = () => {
   showLeaveModal.value = true
 }
 
-const cancelLeave = () => {
-  showLeaveModal.value = false
+const handleLeaveGroup = async () => {
+  const groupId = route.params.id
+  const success = await groupStore.leaveGroup(groupId)
+  
+  if (success) {
+    showLeaveModal.value = false
+  }
 }
 
-const confirmLeave = () => {
-  leaveGroup()
-}
-
-const formatDate = (dateString) => {
-  const date = new Date(dateString)
-  return date.toLocaleDateString('fr-FR', {
-    day: 'numeric',
-    month: 'short',
-    hour: '2-digit',
-    minute: '2-digit'
-  })
-}
-
-const formatEventDay = (dateString) => {
-  const date = new Date(dateString)
-  return date.getDate()
-}
-
-const formatEventMonth = (dateString) => {
-  const date = new Date(dateString)
-  return date.toLocaleDateString('fr-FR', { month: 'short' })
-}
-
-const formatEventTime = (dateString) => {
-  const date = new Date(dateString)
-  return date.toLocaleTimeString('fr-FR', {
-    hour: '2-digit',
-    minute: '2-digit'
-  })
+const openChat = () => {
+  alert(`Chat du groupe ${groupStore.currentGroup.name} - Fonctionnalité à implémenter`)
 }
 
 // Lifecycle
 onMounted(() => {
-  loadGroup()
+  loadGroupData()
+})
+
+onUnmounted(() => {
+  groupStore.clearCurrentGroup()
 })
 </script>
+
+<style scoped>
+.group-view {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.loading-state,
+.error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-top: 3px solid #e879c6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.error-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  opacity: 0.6;
+}
+
+.error-state h3 {
+  color: rgba(255, 255, 255, 0.8);
+  margin: 16px 0 8px 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.error-state p {
+  color: rgba(255, 255, 255, 0.5);
+  margin: 0 0 24px 0;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #e879c6 0%, #78c7ff 100%);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  padding: 10px 20px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 15px rgba(232, 121, 198, 0.3);
+}
+
+.tab-content {
+  min-height: 400px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .group-view {
+    padding: 15px;
+  }
+}
+</style>
 
 <style scoped>
 .group-view {
