@@ -73,11 +73,56 @@ func (repo *EventRepository) GetAll(groupID string) ([]models.Event, error) {
 }
 
 func (repo *EventRepository) GetData(eventId string) (models.Event, error) {
-	row := repo.DB.QueryRow("SELECT title, content, event_id, group_id, strftime('%d.%m.%Y', date), created_by FROM event WHERE event_id = ? ", eventId)
+	row := repo.DB.QueryRow(`
+		SELECT 
+			e.title, 
+			e.content, 
+			e.event_id, 
+			e.group_id, 
+			e.date, 
+			e.created_by,
+			e.created_at,
+			u.first_name,
+			u.last_name,
+			u.email
+		FROM event e 
+		JOIN users u ON e.created_by = u.user_id 
+		WHERE e.event_id = ?`, eventId)
+	
 	var event models.Event
-	if err := row.Scan(&event.Title, &event.Content, &event.ID, &event.GroupID, &event.Date, &event.AuthorID); err != nil {
+	var dateStr string
+	var createdAtStr string
+	
+	err := row.Scan(
+		&event.Title, 
+		&event.Content, 
+		&event.ID, 
+		&event.GroupID, 
+		&dateStr, 
+		&event.AuthorID,
+		&createdAtStr,
+		&event.Author.FirstName,
+		&event.Author.LastName,
+		&event.Author.Email,
+	)
+	if err != nil {
 		return event, err
 	}
+	
+	// Parse the date string to preserve time
+	if dateTime, err := time.Parse(time.RFC3339, dateStr); err == nil {
+		event.DateTime = dateTime
+		event.Date = dateStr // Keep original ISO format for frontend parsing
+	}
+	
+	// Parse created_at
+	if createdAt, err := time.Parse("2006-01-02 15:04:05", createdAtStr); err == nil {
+		event.CreatedAt = createdAt
+	}
+	
+	// Set author ID
+	event.Author.ID = event.AuthorID
+	
 	return event, nil
 }
 
@@ -86,7 +131,8 @@ func (repo *EventRepository) Save(event models.Event) error {
 	if err != nil {
 		return err
 	}
-	if _, err := stmt.Exec(event.ID, event.GroupID, event.AuthorID, event.Content, event.Title, event.Date); err != nil {
+	// Use DateTime (time.Time) instead of Date (string) for proper time storage
+	if _, err := stmt.Exec(event.ID, event.GroupID, event.AuthorID, event.Content, event.Title, event.DateTime); err != nil {
 		return err
 	}
 	return nil

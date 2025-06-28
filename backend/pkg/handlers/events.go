@@ -8,6 +8,7 @@ import (
 	"social-network/pkg/utils"
 	ws "social-network/pkg/wsServer"
 	"strings"
+	"time"
 )
 
 func (handler *Handler) NewEvent(wsServer *ws.Server, w http.ResponseWriter, r *http.Request) {
@@ -26,6 +27,17 @@ func (handler *Handler) NewEvent(wsServer *ws.Server, w http.ResponseWriter, r *
 	}
 	event.ID = utils.UniqueId()
 	event.AuthorID = r.Context().Value(utils.UserKey).(string)
+	
+	// Parse the date string to proper time.Time for database storage
+	if event.Date != "" {
+		if parsedTime, err := time.Parse(time.RFC3339, event.Date); err == nil {
+			event.DateTime = parsedTime
+			// Keep the original ISO string for the date field
+		} else {
+			utils.RespondWithError(w, "Invalid date format", 200)
+			return
+		}
+	}
 	/* -------------------- check if user is a meber of group ------------------- */
 	var isMember = false
 	isAdmin, err := handler.repos.GroupRepo.IsAdmin(event.GroupID, event.AuthorID)
