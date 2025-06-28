@@ -69,8 +69,8 @@ func setRoutes(handler *handlers.Handler, wsServer *ws.Server) http.Handler {
 	mux.HandleFunc("/newComment", handler.Auth(handler.NewComment)) // create route
 
 	/* --------------------------------- groups --------------------------------- */
-	mux.HandleFunc("/allGroups", handler.Auth(handler.AllGroups))   // group list
-	mux.HandleFunc("/userGroups", handler.Auth(handler.UserGroups)) // group list of user groups
+	mux.HandleFunc("/allGroups", handler.Auth(handler.AllGroups))             // group list
+	mux.HandleFunc("/userGroups", handler.Auth(handler.UserGroups))           // group list of user groups
 	mux.HandleFunc("/otherUserGroups", handler.Auth(handler.OtherUserGroups)) // group list for specific user
 
 	mux.HandleFunc("/groupInfo", handler.Auth(handler.GroupInfo))                     // get group info
@@ -94,7 +94,7 @@ func setRoutes(handler *handlers.Handler, wsServer *ws.Server) http.Handler {
 		handler.ResponseGroupRequest(wsServer, w, r)
 	})) // response to join request
 	mux.HandleFunc("/joinPublicGroup", handler.Auth(handler.JoinPublicGroup)) // join public group directly
-	mux.HandleFunc("/leaveGroup", handler.Auth(handler.LeaveGroup)) // leave group (members only, not admins)
+	mux.HandleFunc("/leaveGroup", handler.Auth(handler.LeaveGroup))           // leave group (members only, not admins)
 
 	/* --------------------------------- events --------------------------------- */
 	mux.HandleFunc("/newEvent", handler.Auth(func(w http.ResponseWriter, r *http.Request) {
@@ -112,7 +112,7 @@ func setRoutes(handler *handlers.Handler, wsServer *ws.Server) http.Handler {
 	mux.HandleFunc("/newMessage", handler.Auth(func(w http.ResponseWriter, r *http.Request) {
 		handler.NewMessage(wsServer, w, r)
 	})) // new chat message
-	mux.HandleFunc("/chatList", handler.Auth(handler.ChatList)) //get list of users to display in chatbox
+	mux.HandleFunc("/chatList", handler.Auth(handler.ChatList))                       //get list of users to display in chatbox
 	mux.HandleFunc("/responseChatRequest", handler.Auth(handler.ResponseChatRequest)) // response to chat request
 
 	/* ---------------------------- websocket server ---------------------------- */

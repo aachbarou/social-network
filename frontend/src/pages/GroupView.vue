@@ -61,6 +61,8 @@
     <LeaveGroupModal 
       v-if="showLeaveModal"
       :group="groupStore.currentGroup"
+      :is-admin="groupStore.isCurrentUserAdmin"
+      :error="leaveError"
       @confirm="handleLeaveGroup"
       @cancel="showLeaveModal = false"
     />
@@ -87,6 +89,7 @@ const groupStore = useGroupStore()
 // State
 const activeTab = ref('posts')
 const showLeaveModal = ref(false)
+const leaveError = ref(null)
 
 // Computed
 const tabs = computed(() => [
@@ -116,24 +119,43 @@ const handleJoinGroup = async () => {
   const groupId = route.params.id
   const isPublic = groupStore.currentGroup.privacy === 'public'
   
+  // The GroupActions component has already shown its animation and is now emitting this event
+  // So we can proceed directly with the API call
   const success = await groupStore.joinGroup(groupId, isPublic)
   
   if (success && isPublic) {
-    // Redirect to group page after successful join
+    // Small delay to ensure state updates complete
+    await new Promise(resolve => setTimeout(resolve, 200))
     router.push(`/group/${groupId}`)
   }
 }
 
 const showLeaveConfirmation = () => {
+  leaveError.value = null // Clear any previous errors
   showLeaveModal.value = true
 }
 
 const handleLeaveGroup = async () => {
   const groupId = route.params.id
-  const success = await groupStore.leaveGroup(groupId)
   
-  if (success) {
+  // The LeaveGroupModal component has already shown its animation and is now emitting this event
+  // So we can proceed directly with the API call
+  const result = await groupStore.leaveGroup(groupId)
+  
+  if (result.success) {
     showLeaveModal.value = false
+    leaveError.value = null
+    // Small delay to ensure state updates complete
+    await new Promise(resolve => setTimeout(resolve, 200))
+  } else {
+    // Show error in the modal instead of an alert
+    if (result.error === 'admin_cannot_leave') {
+      leaveError.value = `En tant qu'administrateur, vous ne pouvez pas quitter votre propre groupe. Vous devez d'abord transférer votre rôle à un autre membre.`
+    } else {
+      leaveError.value = result.message || 'Une erreur est survenue lors de la tentative de quitter le groupe.'
+    }
+    
+    // Don't close the modal, keep it open to show the error
   }
 }
 

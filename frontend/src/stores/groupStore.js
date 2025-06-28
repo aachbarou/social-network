@@ -277,12 +277,30 @@ export const useGroupStore = defineStore('group', () => {
         // Refresh group data
         await fetchGroupDetails(groupId)
         await fetchGroupMembers(groupId)
-        return true
+        return { success: true }
+      } else {
+        // Handle different error cases
+        const errorData = await response.json().catch(() => ({ message: 'Unknown error' }))
+        if (response.status === 403) {
+          return { 
+            success: false, 
+            error: 'admin_cannot_leave',
+            message: errorData.message || 'Les administrateurs ne peuvent pas quitter leur propre groupe'
+          }
+        }
+        return { 
+          success: false, 
+          error: 'general_error',
+          message: errorData.message || 'Erreur lors de la sortie du groupe'
+        }
       }
-      return false
     } catch (err) {
       console.error('Error leaving group:', err)
-      return false
+      return { 
+        success: false, 
+        error: 'network_error',
+        message: 'Erreur de connexion'
+      }
     }
   }
 

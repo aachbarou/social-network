@@ -29,7 +29,7 @@
     <!-- Leave button for members (not admins) -->
     <button 
       v-if="canLeaveGroup"
-      @click="$emit('leave')" 
+      @click="handleLeave" 
       class="btn-icon btn-danger"
       :disabled="isLeaving"
       title="Quitter le groupe"
@@ -84,8 +84,7 @@ const canJoinGroup = computed(() => {
 
 const canLeaveGroup = computed(() => {
   return props.group && 
-         props.isMember && 
-         !props.isAdmin
+         (props.isMember || props.isAdmin)
 })
 
 const handleJoin = async () => {
@@ -94,15 +93,29 @@ const handleJoin = async () => {
   isJoining.value = true
   
   try {
-    // Add minimum delay for UX
-    const minDelay = new Promise(resolve => setTimeout(resolve, 1000))
+    // Show animation for minimum time
+    await new Promise(resolve => setTimeout(resolve, 1200))
     
-    await Promise.all([
-      emit('join'),
-      minDelay
-    ])
+    // After animation, emit the join event
+    emit('join')
   } finally {
     isJoining.value = false
+  }
+}
+
+const handleLeave = async () => {
+  if (isLeaving.value) return
+  
+  isLeaving.value = true
+  
+  try {
+    // Show animation for minimum time
+    await new Promise(resolve => setTimeout(resolve, 800))
+    
+    // After animation, emit the leave event
+    emit('leave')
+  } finally {
+    isLeaving.value = false
   }
 }
 </script>

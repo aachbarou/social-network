@@ -5,13 +5,13 @@ type Group struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
 	AdminID     string `json:"adminId"`
-	Privacy     string `json:"privacy"` // "public" or "private"
+	Privacy     string `json:"privacy"`     // "public" or "private"
 	MemberCount int    `json:"memberCount"` // total number of members including admin
 
 	Invitations []string `json:"invitations"`
 
-	Member        bool `json:"member"` // true if current user is a member
-	Administrator bool `json:"admin"`  // true if current user is admin
+	Member         bool `json:"member"`         // true if current user is a member
+	Administrator  bool `json:"admin"`          // true if current user is admin
 	RequestPending bool `json:"requestPending"` // true if request to join is pending
 }
 
@@ -25,6 +25,6 @@ type GroupRepository interface {
 	IsMember(groupId, userId string) (bool, error) //checks if user is a member
 	IsAdmin(groupId, userId string) (bool, error)  //checks if user is admin
 
-	SaveMember(userId, groupId string) error 
+	SaveMember(userId, groupId string) error
 	RemoveMember(userId, groupId string) error
 }

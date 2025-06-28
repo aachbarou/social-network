@@ -29,7 +29,7 @@ func (repo *GroupRepository) GetAllAndRelations(userID string) ([]models.Group, 
 		var member int
 		var admin int
 		rows.Scan(&group.ID, &group.Name, &group.Privacy, &member, &admin, &group.MemberCount)
-		if member != 0 || admin != 0 {  // Admin is also considered a member
+		if member != 0 || admin != 0 { // Admin is also considered a member
 			group.Member = true
 		}
 		if admin != 0 {
@@ -78,7 +78,7 @@ func (repo *GroupRepository) New(group models.Group) error {
 	if _, err := stmt.Exec(group.ID, group.Name, group.Description, group.AdminID, group.Privacy); err != nil {
 		return err
 	}
-	
+
 	// Add the admin as a member to the group_users table
 	memberStmt, err := repo.DB.Prepare("INSERT INTO group_users (group_id, user_id) values (?,?)")
 	if err != nil {
@@ -87,7 +87,7 @@ func (repo *GroupRepository) New(group models.Group) error {
 	if _, err := memberStmt.Exec(group.ID, group.AdminID); err != nil {
 		return err
 	}
-	
+
 	return nil
 }
 

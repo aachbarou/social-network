@@ -181,34 +181,53 @@ const requestToJoin = async (groupId) => {
   try {
     // Find the group to check its privacy
     const group = publicGroups.value.find(g => g.id === groupId)
-    if (!group) return
+    if (!group) {
+      return
+    }
     
-    // Set loading state using store method
+    // Set loading state using store method immediately
     groupStore.setGroupLoading(groupId, true)
     
+    // Force a small delay to ensure the UI updates with loading state
+    await new Promise(resolve => setTimeout(resolve, 500))
+    
     const isPublic = group.privacy === 'public'
-    const result = await groupStore.joinGroup(groupId, isPublic)
+    
+    // Start the join operation
+    const joinPromise = groupStore.joinGroup(groupId, isPublic)
+    
+    // For public groups, redirect early while animation is still spinning
+    if (isPublic) {
+      // Wait only 800ms total (including the 500ms above) to redirect while animation is active
+      setTimeout(() => {
+        router.push(`/group/${groupId}`)
+      }, 700) // 700ms + 500ms = 1200ms total
+    }
+    
+    // Wait for the join operation to complete
+    const result = await joinPromise
     
     if (result.success) {
-      if (result.isPublic) {
-        // Successfully joined public group - add small delay to ensure backend operation completes
-        await new Promise(resolve => setTimeout(resolve, 500))
-        // Then redirect to group page
-        router.push(`/group/${groupId}`)
+      if (!result.isPublic) {
+        // For private groups, reset loading state after showing animation
+        setTimeout(() => {
+          groupStore.setGroupLoading(groupId, false)
+        }, 1500)
       }
-      // For private groups, the store already handles the UI update
+      // For public groups, don't reset loading state here since we're redirecting
+    } else {
+      // If join failed, reset loading state
+      groupStore.setGroupLoading(groupId, false)
     }
   } catch (error) {
     console.error('Error joining group:', error)
-  } finally {
-    // Reset loading state using store method
+    // Reset loading state on error
     groupStore.setGroupLoading(groupId, false)
   }
 }
 
 const handleGroupCreated = async () => {
   showCreateModal.value = false
-  console.log('Group created, refreshing data...')
   // Reload data to show the new group
   await loadData()
   activeTab.value = 'my'
@@ -230,7 +249,6 @@ const handleRequestResponse = async (requestId, action) => {
 
 const openGroupChat = (groupId) => {
   // Navigate to chat page with group context
-  console.log('Opening group chat for group:', groupId)
   // TODO: Implement group-specific chat or integrate with existing chat system
   // For now, just navigate to the general chat page
   // router.push(`/chat?group=${groupId}`)

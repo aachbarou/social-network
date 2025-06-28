@@ -116,7 +116,10 @@ const handleImageError = (event) => {
   event.target.nextElementSibling.style.display = 'flex'
 }
 
-const handleJoinRequest = () => {
+const handleJoinRequest = async () => {
+  if (props.loading) return
+  
+  // Emit the event immediately - parent will handle the API call and loading state
   emit('join-request', props.group.id)
 }
 </script>
