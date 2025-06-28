@@ -11,6 +11,43 @@ import (
 )
 
 /* -------------------------------------------------------------------------- */
+/*                                  helpers                                   */
+/* -------------------------------------------------------------------------- */
+
+// checkGroupAccess verifies if user can access a group based on its privacy settings
+func (handler *Handler) checkGroupAccess(groupId, userId string) (bool, error) {
+	// Get group data to check privacy
+	group, err := handler.repos.GroupRepo.GetData(groupId)
+	if err != nil {
+		return false, err
+	}
+	
+	// If group is public, anyone can access
+	if group.Privacy == "public" {
+		return true, nil
+	}
+	
+	// If group is private, only members and admin can access
+	if group.Privacy == "private" {
+		isAdmin, err := handler.repos.GroupRepo.IsAdmin(groupId, userId)
+		if err != nil {
+			return false, err
+		}
+		if isAdmin {
+			return true, nil
+		}
+		
+		isMember, err := handler.repos.GroupRepo.IsMember(groupId, userId)
+		if err != nil {
+			return false, err
+		}
+		return isMember, nil
+	}
+	
+	return false, nil
+}
+
+/* -------------------------------------------------------------------------- */
 /*                                  get data                                  */
 /* -------------------------------------------------------------------------- */
 
@@ -71,6 +108,21 @@ func (handler *Handler) GroupInfo(w http.ResponseWriter, r *http.Request) {
 		utils.RespondWithError(w, "Error on getting data", 200)
 		return
 	}
+	
+	// access current user id
+	userId := r.Context().Value(utils.UserKey).(string)
+	
+	// Check if user can access this group
+	canAccess, err := handler.checkGroupAccess(groupId, userId)
+	if err != nil {
+		utils.RespondWithError(w, "Error on getting data", 200)
+		return
+	}
+	if !canAccess {
+		utils.RespondWithError(w, "Access denied to private group", 403)
+		return
+	}
+	
 	group, err := handler.repos.GroupRepo.GetData(groupId)
 	if err != nil {
 		utils.RespondWithError(w, "Error on getting data", 200)
@@ -78,8 +130,6 @@ func (handler *Handler) GroupInfo(w http.ResponseWriter, r *http.Request) {
 	}
 	/* --------------- // add additional data about member status --------------- */
 	// check if admin, or member or member request pending
-	// access current user id
-	userId := r.Context().Value(utils.UserKey).(string)
 	if userId == group.AdminID {
 		group.Administrator = true
 	} else {
@@ -115,6 +165,21 @@ func (handler *Handler) GroupMembers(w http.ResponseWriter, r *http.Request) {
 		utils.RespondWithError(w, "Error on getting data", 200)
 		return
 	}
+	
+	// access current user id
+	userId := r.Context().Value(utils.UserKey).(string)
+	
+	// Check if user can access this group
+	canAccess, err := handler.checkGroupAccess(groupId, userId)
+	if err != nil {
+		utils.RespondWithError(w, "Error on getting data", 200)
+		return
+	}
+	if !canAccess {
+		utils.RespondWithError(w, "Access denied to private group", 403)
+		return
+	}
+	
 	members, err := handler.repos.GroupRepo.GetMembers(groupId)
 	if err != nil {
 		utils.RespondWithError(w, "Error on getting data", 200)
@@ -190,18 +255,19 @@ func (handler *Handler) GroupPosts(w http.ResponseWriter, r *http.Request) {
 		utils.RespondWithError(w, "Error on getting data", 200)
 		return
 	}
-	/* -------- check if current user is a member or admin  of the group -------- */
-	isAdmin, err := handler.repos.GroupRepo.IsAdmin(groupId, userId)
-	isMember, err := handler.repos.GroupRepo.IsMember(groupId, userId)
+	
+	// Check if user can access this group
+	canAccess, err := handler.checkGroupAccess(groupId, userId)
 	if err != nil {
 		utils.RespondWithError(w, "Error on getting data", 200)
 		return
 	}
-	if !isMember && !isAdmin {
-		utils.RespondWithError(w, "Not a member", 200)
+	if !canAccess {
+		utils.RespondWithError(w, "Access denied to private group", 403)
 		return
 	}
-	/* ------------- current user is a member or admin -> get posts ------------- */
+	
+	/* ------------- current user can access group -> get posts ------------- */
 	posts, err := handler.repos.PostRepo.GetGroupPosts(groupId)
 	if err != nil {
 		utils.RespondWithError(w, "Error on getting data", 200)

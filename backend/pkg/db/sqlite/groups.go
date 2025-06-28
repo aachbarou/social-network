@@ -11,7 +11,16 @@ type GroupRepository struct {
 
 func (repo *GroupRepository) GetAllAndRelations(userID string) ([]models.Group, error) {
 	var groups []models.Group
-	rows, err := repo.DB.Query("SELECT group_id, name, (SELECT COUNT(*) FROM group_users WHERE group_users.group_id = groups.group_id AND group_users.user_id = '" + userID + "') as member, administrator = '" + userID + "' as admin FROM groups;")
+	rows, err := repo.DB.Query(`
+		SELECT 
+			group_id, 
+			name, 
+			privacy, 
+			(SELECT COUNT(*) FROM group_users WHERE group_users.group_id = groups.group_id AND group_users.user_id = ?) as member, 
+			administrator = ? as admin,
+			(SELECT COUNT(*) FROM group_users WHERE group_users.group_id = groups.group_id) + 1 as member_count
+		FROM groups;
+	`, userID, userID)
 	if err != nil {
 		return groups, err
 	}
@@ -19,7 +28,7 @@ func (repo *GroupRepository) GetAllAndRelations(userID string) ([]models.Group, 
 		var group models.Group
 		var member int
 		var admin int
-		rows.Scan(&group.ID, &group.Name, &member, &admin)
+		rows.Scan(&group.ID, &group.Name, &group.Privacy, &member, &admin, &group.MemberCount)
 		if member != 0 {
 			group.Member = true
 		}
@@ -33,14 +42,24 @@ func (repo *GroupRepository) GetAllAndRelations(userID string) ([]models.Group, 
 
 func (repo *GroupRepository) GetUserGroups(userID string) ([]models.Group, error) {
 	var groups []models.Group
-	rows, err := repo.DB.Query("SELECT group_id, name, administrator = '" + userID + "' as admin FROM groups WHERE (SELECT COUNT(*) FROM group_users WHERE group_users.group_id = groups.group_id AND group_users.user_id = '" + userID + "') = 1 OR administrator = '" + userID + "';")
+	rows, err := repo.DB.Query(`
+		SELECT 
+			group_id, 
+			name, 
+			privacy, 
+			administrator = ? as admin,
+			(SELECT COUNT(*) FROM group_users WHERE group_users.group_id = groups.group_id) + 1 as member_count
+		FROM groups 
+		WHERE (SELECT COUNT(*) FROM group_users WHERE group_users.group_id = groups.group_id AND group_users.user_id = ?) = 1 
+		   OR administrator = ?;
+	`, userID, userID, userID)
 	if err != nil {
 		return groups, err
 	}
 	for rows.Next() {
 		var group models.Group
 		var admin int
-		rows.Scan(&group.ID, &group.Name, &admin)
+		rows.Scan(&group.ID, &group.Name, &group.Privacy, &admin, &group.MemberCount)
 		if admin != 0 {
 			group.Administrator = true
 		} else {
@@ -52,20 +71,29 @@ func (repo *GroupRepository) GetUserGroups(userID string) ([]models.Group, error
 }
 
 func (repo *GroupRepository) New(group models.Group) error {
-	stmt, err := repo.DB.Prepare("INSERT INTO groups (group_id, name,description,administrator) values (?,?,?,?)")
+	stmt, err := repo.DB.Prepare("INSERT INTO groups (group_id, name, description, administrator, privacy) values (?,?,?,?,?)")
 	if err != nil {
 		return err
 	}
-	if _, err := stmt.Exec(group.ID, group.Name, group.Description, group.AdminID); err != nil {
+	if _, err := stmt.Exec(group.ID, group.Name, group.Description, group.AdminID, group.Privacy); err != nil {
 		return err
 	}
 	return nil
 }
 
 func (repo *GroupRepository) GetData(groupId string) (models.Group, error) {
-	row := repo.DB.QueryRow("SELECT name, description,administrator FROM groups WHERE group_id = ? ", groupId)
+	row := repo.DB.QueryRow(`
+		SELECT 
+			name, 
+			description, 
+			administrator, 
+			privacy,
+			(SELECT COUNT(*) FROM group_users WHERE group_users.group_id = ?) + 1 as member_count
+		FROM groups 
+		WHERE group_id = ?
+	`, groupId, groupId)
 	var group models.Group
-	if err := row.Scan(&group.Name, &group.Description, &group.AdminID); err != nil {
+	if err := row.Scan(&group.Name, &group.Description, &group.AdminID, &group.Privacy, &group.MemberCount); err != nil {
 		return group, err
 	}
 	group.ID = groupId
@@ -74,13 +102,28 @@ func (repo *GroupRepository) GetData(groupId string) (models.Group, error) {
 
 func (repo *GroupRepository) GetMembers(groupId string) ([]models.User, error) {
 	var members []models.User
-	rows, err := repo.DB.Query("SELECT user_id, IFNULL(nickname, first_name || ' ' || last_name), image FROM users WHERE (user_id = (SELECT administrator FROM groups WHERE group_id =?)) OR ((SELECT COUNT() FROM group_users WHERE group_id = ? AND  user_id = users.user_id )=1) ", groupId, groupId)
+	rows, err := repo.DB.Query(`
+		SELECT 
+			users.user_id, 
+			users.first_name, 
+			users.last_name, 
+			users.nickname, 
+			users.image,
+			CASE WHEN users.user_id = groups.administrator THEN 1 ELSE 0 END as is_admin
+		FROM users 
+		LEFT JOIN groups ON groups.group_id = ?
+		WHERE (users.user_id = groups.administrator) 
+		   OR (users.user_id IN (SELECT user_id FROM group_users WHERE group_id = ?))
+	`, groupId, groupId)
 	if err != nil {
 		return members, err
 	}
 	for rows.Next() {
 		var member models.User
-		rows.Scan(&member.ID, &member.Nickname, &member.ImagePath)
+		var isAdmin int
+		rows.Scan(&member.ID, &member.FirstName, &member.LastName, &member.Nickname, &member.ImagePath, &isAdmin)
+		// Set admin status (we'll use a custom field for this)
+		member.Following = (isAdmin == 1) // Reusing this field to indicate admin status for group context
 		members = append(members, member)
 	}
 	return members, nil
