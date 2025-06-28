@@ -7,12 +7,11 @@
       class="btn-primary"
       :disabled="isJoining"
     >
-      <span 
-        class="icon" 
+      <component 
+        :is="isJoining ? Loader2 : Plus" 
         :class="{ 'animate-spin': isJoining }"
-      >
-        {{ isJoining ? '⏳' : '➕' }}
-      </span>
+        :size="18"
+      />
       {{ isJoining ? 'Rejoindre...' : (group.privacy === 'public' ? 'Rejoindre le groupe' : 'Demander à rejoindre') }}
     </button>
     
@@ -20,9 +19,9 @@
     <button 
       v-if="isMember || isAdmin"
       @click="$emit('chat')" 
-      class="btn-primary"
+      class="action-badge chat-action"
     >
-      <span class="icon">💬</span>
+      <MessageCircle :size="18" />
       Chat
     </button>
     
@@ -30,20 +29,20 @@
     <button 
       v-if="canLeaveGroup"
       @click="handleLeave" 
-      class="btn-icon btn-danger"
+      class="action-badge leave-action"
       :disabled="isLeaving"
       title="Quitter le groupe"
     >
-      <span 
-        class="icon" 
+      <component 
+        :is="isLeaving ? Loader2 : LogOut" 
         :class="{ 'animate-spin': isLeaving }"
-      >
-        {{ isLeaving ? '⏳' : '🚪' }}
-      </span>
+        :size="18"
+      />
+      {{ isLeaving ? '' : 'Quitter' }}
     </button>
     
     <button @click="$router.go(-1)" class="btn-secondary">
-      <span class="icon">←</span>
+      <ArrowLeft :size="18" />
       Retour
     </button>
   </div>
@@ -52,6 +51,13 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { 
+  Plus, 
+  MessageCircle, 
+  LogOut, 
+  ArrowLeft, 
+  Loader2 
+} from 'lucide-vue-next'
 
 const router = useRouter()
 
@@ -139,6 +145,57 @@ const handleLeave = async () => {
   gap: 8px;
 }
 
+.action-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.95);
+  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.8);
+  padding: 10px 18px;
+  border-radius: 30px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.chat-action {
+  background: rgba(34, 197, 94, 0.15);
+  border-color: rgba(34, 197, 94, 0.3);
+  color: rgba(34, 197, 94, 1);
+}
+
+.leave-action {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: rgba(239, 68, 68, 1);
+}
+
+.action-badge:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.chat-action:hover {
+  background: rgba(34, 197, 94, 0.2);
+  border-color: rgba(34, 197, 94, 0.4);
+}
+
+.leave-action:hover {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: rgba(239, 68, 68, 0.4);
+}
+
+.action-badge:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
 .btn-icon {
   width: 48px;
   height: 48px;
@@ -190,6 +247,6 @@ const handleLeave = async () => {
 }
 
 .icon {
-  font-size: 0.875rem;
+  font-size: 1.1em;
 }
 </style>
