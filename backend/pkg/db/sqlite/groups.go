@@ -18,7 +18,7 @@ func (repo *GroupRepository) GetAllAndRelations(userID string) ([]models.Group, 
 			privacy, 
 			(SELECT COUNT(*) FROM group_users WHERE group_users.group_id = groups.group_id AND group_users.user_id = ?) as member, 
 			administrator = ? as admin,
-			(SELECT COUNT(*) FROM group_users WHERE group_users.group_id = groups.group_id) + 1 as member_count
+			(SELECT COUNT(*) FROM group_users WHERE group_users.group_id = groups.group_id) as member_count
 		FROM groups;
 	`, userID, userID)
 	if err != nil {
@@ -48,7 +48,7 @@ func (repo *GroupRepository) GetUserGroups(userID string) ([]models.Group, error
 			name, 
 			privacy, 
 			administrator = ? as admin,
-			(SELECT COUNT(*) FROM group_users WHERE group_users.group_id = groups.group_id) + 1 as member_count
+			(SELECT COUNT(*) FROM group_users WHERE group_users.group_id = groups.group_id) as member_count
 		FROM groups 
 		WHERE (SELECT COUNT(*) FROM group_users WHERE group_users.group_id = groups.group_id AND group_users.user_id = ?) = 1 
 		   OR administrator = ?;
@@ -78,6 +78,16 @@ func (repo *GroupRepository) New(group models.Group) error {
 	if _, err := stmt.Exec(group.ID, group.Name, group.Description, group.AdminID, group.Privacy); err != nil {
 		return err
 	}
+	
+	// Add the admin as a member to the group_users table
+	memberStmt, err := repo.DB.Prepare("INSERT INTO group_users (group_id, user_id) values (?,?)")
+	if err != nil {
+		return err
+	}
+	if _, err := memberStmt.Exec(group.ID, group.AdminID); err != nil {
+		return err
+	}
+	
 	return nil
 }
 
@@ -88,7 +98,7 @@ func (repo *GroupRepository) GetData(groupId string) (models.Group, error) {
 			description, 
 			administrator, 
 			privacy,
-			(SELECT COUNT(*) FROM group_users WHERE group_users.group_id = ?) + 1 as member_count
+			(SELECT COUNT(*) FROM group_users WHERE group_users.group_id = ?) as member_count
 		FROM groups 
 		WHERE group_id = ?
 	`, groupId, groupId)
