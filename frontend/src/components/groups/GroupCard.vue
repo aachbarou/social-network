@@ -33,6 +33,7 @@
     <!-- Actions -->
     <div class="group-actions">
       <button 
+        v-if="group.privacy === 'public' || isMember"
         @click="$emit('view', group)"
         class="btn-secondary"
       >
