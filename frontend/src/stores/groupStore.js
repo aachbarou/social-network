@@ -14,6 +14,7 @@ export const useGroupStore = defineStore('group', () => {
   const requests = ref([])
   const loading = ref(false)
   const error = ref(null)
+  const eventsUpdateCounter = ref(0) // Add counter to force reactivity
 
   // Getters
   const currentGroupMembers = computed(() => members.value)
@@ -26,7 +27,7 @@ export const useGroupStore = defineStore('group', () => {
     return currentGroup.value?.member || false
   })
   const isCurrentUserAdmin = computed(() => {
-    return currentGroup.value?.administrator || false
+    return currentGroup.value?.admin || false
   })
 
   // Actions
@@ -228,6 +229,66 @@ export const useGroupStore = defineStore('group', () => {
     }
   }
 
+  const updateEventResponse = async (eventId, response) => {
+    try {
+      const res = await fetch('http://localhost:8081/updateEventResponse', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ eventId, response })
+      })
+      
+      if (res.ok) {
+        // Update the event in the local events array
+        const eventIndex = events.value.findIndex(e => e.id === eventId)
+        if (eventIndex !== -1) {
+          const event = events.value[eventIndex]
+          
+          // Update user response
+          event.userResponse = response
+          
+          // Update counts (simplified approach - refetch events for accuracy)
+          if (currentGroup.value?.id) {
+            await fetchGroupEvents(currentGroup.value.id)
+          }
+        }
+        return true
+      }
+      return false
+    } catch (err) {
+      console.error('Error updating event response:', err)
+      return false
+    }
+  }
+
+  const deleteEvent = async (eventId) => {
+    try {
+      const response = await fetch(`http://localhost:8081/deleteEvent?eventId=${eventId}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      })
+      
+      if (response.ok) {
+        // Remove event from local events array and force reactivity
+        events.value = events.value.filter(e => e.id !== eventId)
+        eventsUpdateCounter.value++ // Increment counter to force reactivity
+        return { success: true }
+      } else {
+        const errorData = await response.json().catch(() => ({ message: 'Unknown error' }))
+        return { 
+          success: false, 
+          message: errorData.message || 'Erreur lors de la suppression de l\'événement'
+        }
+      }
+    } catch (err) {
+      console.error('Error deleting event:', err)
+      return { 
+        success: false, 
+        message: 'Erreur de connexion'
+      }
+    }
+  }
+
   const joinGroup = async (groupId, isPublic = true) => {
     const endpoint = isPublic 
       ? 'http://localhost:8081/joinPublicGroup'
@@ -409,6 +470,7 @@ export const useGroupStore = defineStore('group', () => {
     requests,
     loading,
     error,
+    eventsUpdateCounter,
     
     // Getters
     currentGroupMembers,
@@ -430,11 +492,15 @@ export const useGroupStore = defineStore('group', () => {
     fetchGroupMembers,
     fetchGroupPosts,
     fetchGroupEvents,
+    updateEventResponse,
+    deleteEvent,
     joinGroup,
     leaveGroup,
     respondToInvitation,
     respondToRequest,
     clearCurrentGroup,
-    setGroupLoading
+    setGroupLoading,
+    updateEventResponse,
+    deleteEvent
   }
 })

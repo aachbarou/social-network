@@ -139,6 +139,7 @@ import {
   HeartIcon,
   DocumentDuplicateIcon
 } from '@heroicons/vue/24/outline'
+import { useUserStore } from '../stores/userStore'
 
 export default {
   name: 'MainLayout',
@@ -161,6 +162,13 @@ export default {
       searchResults: [],
       showResults: false,
       searchTimeout: null
+    }
+  },
+  async mounted() {
+    // Load user data when MainLayout mounts
+    const userStore = useUserStore()
+    if (!userStore.user) {
+      await userStore.reloadUserAfterRefresh()
     }
   },
   watch: {

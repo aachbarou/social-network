@@ -28,8 +28,8 @@
         v-for="event in events"
         :key="event.id"
         :event="event"
-        :loading="updatingResponse === event.id"
-        @update-response="handleUpdateResponse"
+        :loading="false"
+        @delete-event="handleDeleteEvent"
       />
     </div>
 
@@ -81,7 +81,6 @@ const props = defineProps({
 const groupStore = useGroupStore()
 const showCreateModal = ref(false)
 const creatingEvent = ref(false)
-const updatingResponse = ref(null)
 
 // Use groupStore events
 const events = computed(() => groupStore.events || [])
@@ -127,34 +126,9 @@ const handleCreateEvent = async (eventData) => {
   }
 }
 
-const handleUpdateResponse = async (eventId, response) => {
-  updatingResponse.value = eventId
-  try {
-    const apiResponse = await fetch('http://localhost:8081/updateEventResponse', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      credentials: 'include',
-      body: JSON.stringify({
-        eventId,
-        response
-      })
-    })
-
-    if (apiResponse.ok) {
-      // Reload events to get updated data
-      await loadEvents()
-    } else {
-      const error = await apiResponse.json()
-      alert(error.message || 'Erreur lors de la mise à jour de la réponse')
-    }
-  } catch (error) {
-    console.error('Error updating response:', error)
-    alert('Erreur lors de la mise à jour de la réponse')
-  } finally {
-    updatingResponse.value = null
-  }
+const handleDeleteEvent = (eventId) => {
+  console.log('Event deleted from EventCard:', eventId)
+  // Event is already removed from store by EventCard, no need to reload
 }
 
 onMounted(() => {
