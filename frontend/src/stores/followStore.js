@@ -71,6 +71,21 @@ export const useFollowStore = defineStore('follow', () => {
     return follow(userId)
   }
 
+  // Accepter ou refuser une demande de suivi (pour profils privés)
+  async function respondToFollowRequest(requestId, response) {
+    try {
+      const res = await fetch('http://localhost:8081/responseFollowRequest', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requestId, response })
+      })
+      return await res.json()
+    } catch (e) {
+      return { error: 'Erreur réseau' }
+    }
+  }
+
   // Vérifie si l'utilisateur courant suit un autre utilisateur
   function isFollowing(userId) {
     return following.value.some(f => f.id === userId)
@@ -96,6 +111,7 @@ export const useFollowStore = defineStore('follow', () => {
     follow,
     unfollow,
     requestFollow,
+    respondToFollowRequest,
     isFollowing,
     isFollower,
     isFollowRequested

@@ -74,6 +74,18 @@
       <button @click="confirmPrivacyChange">Confirmer</button>
       <button @click="cancelPrivacyChange">Annuler</button>
     </div>
+    <!-- Gestion des demandes de suivi -->
+    <div v-if="isOwnProfile && isPrivate">
+      <h3>Demandes de suivi en attente</h3>
+      <div v-if="followStore.followRequests.length === 0">Aucune demande.</div>
+      <ul>
+        <li v-for="req in followStore.followRequests" :key="req.id" style="margin-bottom: 0.5rem;">
+          <span>{{ req.nickname || req.firstName || 'Utilisateur' }}</span>
+          <button @click="respondToRequest(req.requestId || req.id, 'ACCEPT')">Accepter</button>
+          <button @click="respondToRequest(req.requestId || req.id, 'DECLINE')">Refuser</button>
+        </li>
+      </ul>
+    </div>
   </div>
 </template>
 
@@ -203,6 +215,23 @@ async function loadProfile() {
 
 onMounted(loadProfile)
 watch(() => route.params.id, loadProfile)
+onMounted(async () => {
+  await loadProfile()
+  if (isOwnProfile.value && isPrivate.value) {
+    await followStore.fetchFollowRequests()
+  }
+})
+
+watch([isOwnProfile, isPrivate], async ([own, priv]) => {
+  if (own && priv) {
+    await followStore.fetchFollowRequests()
+  }
+})
+
+async function respondToRequest(requestId, response) {
+  await followStore.respondToFollowRequest(requestId, response)
+  await followStore.fetchFollowRequests()
+}
 </script>
 
 <style scoped>
