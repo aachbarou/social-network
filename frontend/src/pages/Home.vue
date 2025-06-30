@@ -21,6 +21,19 @@
 
       </div>
       <div class="create-post-actions" v-if="showCreatePost">
+        <!-- Privacy Choice Panel -->
+        <div class="privacy-choice-panel">
+          <span class="privacy-label">Spécifier la confidentialité du post :</span>
+          <label>
+            <input type="radio" value="PUBLIC" v-model="selectedPrivacy" /> Public
+          </label>
+          <label>
+            <input type="radio" value="ALMOST_PRIVATE" v-model="selectedPrivacy" /> Presque privé (followers)
+          </label>
+          <label>
+            <input type="radio" value="PRIVATE" v-model="selectedPrivacy" /> Privé (followers choisis)
+          </label>
+        </div>
         <label class="action-btn">
           <input type="file" ref="imageInput" @change="handleImageChange" accept="image/*" style="display: none" />
           <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
@@ -65,6 +78,7 @@
               <div class="post-meta">
                 <h3 class="user-name">{{ post.userName }}</h3>
                 <span class="post-time">{{ post.timeAgo }}</span>
+                <span class="post-privacy-label">{{ getPrivacyLabel(post.visibility) }}</span>
               </div>
               <button class="post-menu-btn">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
@@ -116,15 +130,19 @@
               <div v-if="post.comments && post.comments.length > 0" class="comments-list">
                 <div v-for="comment in post.comments" :key="comment.id" class="comment">
                   <div class="comment-header">
-                    <div class="user-avatar small">{{ comment.userInitials || 'U' }}</div>
+                    <div class="user-avatar small">{{ comment.userInitials || (comment.author?.nickname ? comment.author.nickname.slice(0,2).toUpperCase() : 'U') }}</div>
                     <div class="comment-meta">
-                      <h4 class="comment-user">{{ comment.userName || 'Utilisateur' }}</h4>
-                      <span class="comment-time">{{ new Date(comment.createdAt).toLocaleString() }}</span>
+                      <h4 class="comment-user">
+                        {{ comment.userName || comment.author?.nickname || 'Utilisateur' }}
+                      </h4>
+                      <span class="comment-time">
+                        {{ isValidDate(comment.createdAt) ? new Date(comment.createdAt).toLocaleString() : '' }}
+                      </span>
                     </div>
                   </div>
                   <div class="comment-content">
                     <p>{{ comment.content }}</p>
-                    <img v-if="comment.imagePath" :src="getImageUrl(comment.imagePath)" class="comment-image" @error="handleImageError" />
+                    <img v-if="getCommentImage(comment)" :src="getImageUrl(getCommentImage(comment))" class="comment-image" @error="handleImageError" />
                   </div>
                 </div>
               </div>
@@ -182,6 +200,7 @@ export default {
     const selectedImage = ref(null);
     const imagePreview = ref('');
     const imageInput = ref(null);
+    const selectedPrivacy = ref('PUBLIC');
     
     // For comments
     const activeCommentPostId = ref(null);
@@ -267,14 +286,11 @@ export default {
     
     const publishPost = async () => {
       if (!newPostContent.value && !selectedImage.value) return;
-      
-      console.log("Publishing post with image:", selectedImage.value ? selectedImage.value.name : "No image");
-      
       const formData = new FormData();
       formData.set('body', newPostContent.value);
+      formData.set('privacy', selectedPrivacy.value); // <-- send as 'privacy'!
       if (selectedImage.value) {
         formData.append('image', selectedImage.value);
-        console.log("Image added to form data:", selectedImage.value.name);
       }
       
       try {
@@ -326,13 +342,30 @@ export default {
             imagePath: imagePath,
             likes: post.likes || 0,
             comments: post.comments || [],
-            commentsCount: post.comments ? post.comments.length : 0
+            commentsCount: post.comments ? post.comments.length : 0,
+            visibility: post.visibility || 'PUBLIC',
           };
         });
       
       console.log("Final formatted posts:", formattedArr);
       return formattedArr;
     });
+    // Helper to get privacy label
+    function getPrivacyLabel(visibility) {
+      if (visibility === 'PUBLIC') return 'Public';
+      if (visibility === 'ALMOST_PRIVATE') return 'Presque privé';
+      if (visibility === 'PRIVATE') return 'Privé';
+      return '';
+    }
+    
+    // Add this helper function inside setup()
+    const getCommentImage = (comment) => {
+      return comment.imagePath || comment.image || (comment.images && comment.images.length > 0 ? comment.images[0] : null);
+    };
+    
+    function isValidDate(date) {
+      return !isNaN(new Date(date).getTime());
+    }
     
     return {
       posts,
@@ -355,7 +388,11 @@ export default {
       handleCommentImageChange,
       removeCommentImage,
       getImageUrl,
-      handleImageError
+      handleImageError,
+      getPrivacyLabel,
+      getCommentImage,
+      isValidDate,
+      selectedPrivacy,
     };
   },
   data() {
@@ -456,6 +493,14 @@ export default {
   flex-wrap: wrap;
 }
 
+.privacy-choice-panel {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+  color: #fff;
+  font-size: 0.95rem;
+}
+
 .action-btn {
   display: flex;
   align-items: center;
@@ -536,6 +581,17 @@ export default {
 .post-time {
   color: rgba(255, 255, 255, 0.5);
   font-size: 0.8rem;
+}
+
+.post-privacy-label {
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 2px 8px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  background: #444a;
+  color: #fff;
+  font-weight: 600;
 }
 
 .post-menu-btn {
@@ -685,6 +741,10 @@ export default {
   color: rgba(255, 255, 255, 0.5);
 }
 
+.comment-content {
+  color: #fff;
+}
+
 .comment-content p {
   font-size: 0.9rem;
   margin: 0 0 8px 0;
@@ -751,11 +811,6 @@ export default {
   margin-top: 10px;
   position: relative;
   width: 150px;
-}
-
-.comment-image-preview {
-  width: 100%;
-  border-radius: 8px;
 }
 
 /* Mobile Responsive */
