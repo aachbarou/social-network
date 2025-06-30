@@ -6,6 +6,13 @@
         Rendre profil {{ isPrivate ? 'public' : 'privé' }}
       </button>
     </div>
+    <!-- Boutons d'action pour les autres profils -->
+    <div v-else>
+      <button v-if="isFollowing" @click="unfollow">Unfollow</button>
+      <button v-else-if="isPrivate && !isFollowRequested" @click="follow">Demander à suivre</button>
+      <button v-else-if="!isFollowing && isPublic && !isFollowRequested" @click="follow">Suivre</button>
+      <span v-if="isFollowRequested">Demande envoyée</span>
+    </div>
     <!-- Affichage conditionnel des infos -->
     <div v-if="isOwnProfile || isPublic || isFollower" class="profile-infos">
       <h1 v-if="isOwnProfile">Mon profil</h1>
@@ -33,13 +40,13 @@
           </div>
         </div>
         <div class="profile-followers">
-          <h3>Followers ({{ followers.length }})</h3>
+          <h3>Followers ({{ profileFollowers.length }})</h3>
           <ul>
-            <li v-for="f in followers" :key="f.id">{{ f.nickname || f.firstName }}</li>
+            <li v-for="f in profileFollowers" :key="f.id">{{ f.nickname || f.firstName }}</li>
           </ul>
-          <h3>Abonnements ({{ following.length }})</h3>
+          <h3>Abonnements ({{ profileFollowing.length }})</h3>
           <ul>
-            <li v-for="f in following" :key="f.id">{{ f.nickname || f.firstName }}</li>
+            <li v-for="f in profileFollowing" :key="f.id">{{ f.nickname || f.firstName }}</li>
           </ul>
         </div>
         <div class="profile-posts">
@@ -74,12 +81,15 @@
 import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useUserStore } from '../stores/userStore'
+import { useFollowStore } from '../stores/followStore'
 
 const route = useRoute()
 const userStore = useUserStore()
+const followStore = useFollowStore()
 const user = ref(null)
-const followers = ref([])
-const following = ref([])
+const profileFollowers = ref([])
+const profileFollowing = ref([])
+const following = followStore.following // Utilise directement le ref du store Pinia
 const posts = ref([])
 const loading = ref(true)
 const isOwnProfile = computed(() => !route.params.id)
@@ -87,6 +97,14 @@ const isPublic = computed(() => user.value?.status?.toLowerCase() !== 'private')
 const isPrivate = computed(() => user.value?.status?.toLowerCase() === 'private')
 const showPrivacyConfirm = ref(false)
 const pendingPrivacy = ref(null)
+// const isFollowing = computed(() => {
+//   return user.value?.id && Array.isArray(following.value)
+//     ? following.value.some(f => f.id === user.value.id)
+//     : false
+// })
+const isFollowing = computed(() => !!user.value?.following)
+console.log(isFollowing.value, 'isFollowing')
+const isFollowRequested = computed(() => user.value?.id ? followStore.isFollowRequested(user.value.id) : false)
 
 function getFullImageUrl(path) {
   if (!path) return ''
@@ -94,16 +112,6 @@ function getFullImageUrl(path) {
   return `http://localhost:8081/${path.replace(/^\/+/,'')}`
 }
 
-const fetchFollowers = async (userId) => {
-  const res = await fetch(`http://localhost:8081/followers?userId=${userId}`, { credentials: 'include' })
-  const data = await res.json()
-  if (res.ok && data.users) followers.value = data.users
-}
-const fetchFollowing = async (userId) => {
-  const res = await fetch(`http://localhost:8081/following?userId=${userId}`, { credentials: 'include' })
-  const data = await res.json()
-  if (res.ok && data.users) following.value = data.users
-}
 const fetchUserPosts = async (userId) => {
   const res = await fetch(`http://localhost:8081/userPosts?id=${userId}`, { credentials: 'include' })
   const data = await res.json()
@@ -126,6 +134,29 @@ const cancelPrivacyChange = () => {
   showPrivacyConfirm.value = false
   pendingPrivacy.value = null
 }
+function follow() {
+  if (!user.value?.id) return
+  if (isPublic.value) {
+    followStore.follow(user.value.id)
+      .then(async () => {
+        await loadProfile() // Recharge le profil pour mettre à jour le bouton
+      })
+      .catch(() => {
+        // Optionnel : afficher une erreur
+      })
+  } else {
+    followStore.requestFollow(user.value.id)
+    // Optionnel : afficher une notification ou un message
+  }
+}
+
+function unfollow() {
+  if (!user.value?.id) return
+  followStore.unfollow(user.value.id)
+    .then(async () => {
+      await loadProfile() // Recharge le profil pour mettre à jour le bouton
+    })
+}
 
 async function loadProfile() {
   loading.value = true
@@ -136,20 +167,35 @@ async function loadProfile() {
     const res = await fetch(`http://localhost:8081/userData?userId=${userId}`, { credentials: 'include' })
     const data = await res.json()
     user.value = (data.users && data.users.length > 0) ? data.users[0] : null
+    // Affichage : followers/following du profil visité
+    await followStore.fetchFollowers(userId)
+    profileFollowers.value = [...followStore.followers]
+    await followStore.fetchFollowing(userId)
+    profileFollowing.value = [...followStore.following]
+    // Pour le bouton : always fetch following du user courant
+    if (userStore.user?.id) {
+      await followStore.fetchFollowing(userStore.user.id)
+      console.log('following (utilisateur courant):', following.value)
+    }
   } else {
     // Mon propre profil
     await userStore.reloadUserAfterRefresh()
     await userStore.fetchUserData()
     user.value = userStore.user
     userId = user.value?.id
+    await followStore.fetchFollowers(userId)
+    profileFollowers.value = [...followStore.followers]
+    await followStore.fetchFollowing(userId)
+    profileFollowing.value = [...followStore.following]
+    // Recharge aussi la liste des following du user courant (lui-même)
+    await followStore.fetchFollowing(userId)
+    console.log('following (utilisateur courant):', following.value)
   }
   if (userId) {
-    await fetchFollowers(userId)
-    await fetchFollowing(userId)
     await fetchUserPosts(userId)
   } else {
-    followers.value = []
-    following.value = []
+    profileFollowers.value = []
+    profileFollowing.value = []
     posts.value = []
   }
   loading.value = false
