@@ -43,7 +43,9 @@ func (repo *UserRepository) FindUserByEmail(email string) (models.User, error) {
 	row := repo.DB.QueryRow("SELECT user_id,password FROM users WHERE email = ? LIMIT 1", email)
 	var user models.User
 	if err := row.Scan(&user.ID, &user.Password); err != nil {
-		return user, err
+		if err != nil {
+			return user, err
+		}
 	}
 	return user, nil
 }
@@ -76,14 +78,12 @@ func (repo *UserRepository) GetAllAndFollowing(userID string) ([]models.User, er
 // returns id, nickname and image
 // min package for returning user data
 func (repo *UserRepository) GetDataMin(userID string) (models.User, error) {
-	row := repo.DB.QueryRow("SELECT user_id, first_name, last_name, nickname, image FROM users WHERE user_id = ? LIMIT 1", userID)
+	row := repo.DB.QueryRow("SELECT user_id, IFNULL(nickname, first_name || ' ' || last_name), image FROM users WHERE user_id = ? LIMIT 1", userID)
 	var user models.User
-	var nickname sql.NullString
-	if err := row.Scan(&user.ID, &user.FirstName, &user.LastName, &nickname, &user.ImagePath); err != nil {
-		return user, err
-	}
-	if nickname.Valid {
-		user.Nickname = nickname.String
+	if err := row.Scan(&user.ID, &user.Nickname, &user.ImagePath); err != nil {
+		if err != nil {
+			return user, err
+		}
 	}
 	return user, nil
 }
@@ -106,7 +106,9 @@ func (repo *UserRepository) ProfileStatus(userID string) (string, error) {
 	row := repo.DB.QueryRow("SELECT status FROM users WHERE user_id = ?;", userID)
 	var status string
 	if err := row.Scan(&status); err != nil {
-		return "", err
+		if err != nil {
+			return "", err
+		}
 	}
 	return status, nil
 }
@@ -119,7 +121,9 @@ func (repo *UserRepository) GetProfileMax(userID string) (models.User, error) {
 	row := repo.DB.QueryRow("SELECT IFNULL(nickname, first_name || ' ' || last_name),first_name, last_name, image, email, strftime('%d.%m.%Y', birthday), about FROM users WHERE user_id = ? LIMIT 1", userID)
 	var user models.User
 	if err := row.Scan(&user.Nickname, &user.FirstName, &user.LastName, &user.ImagePath, &user.Email, &user.DateOfBirth, &user.About); err != nil {
-		return user, err
+		if err != nil {
+			return user, err
+		}
 	}
 	user.ID = userID
 	return user, nil

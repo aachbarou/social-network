@@ -3,7 +3,6 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"social-network/pkg/models"
 	"social-network/pkg/utils"
@@ -306,7 +305,7 @@ func (handler *Handler) GroupRequests(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	for i := 0; i < len(notifications); i++ {
-		notifications[i].User, err = handler.repos.UserRepo.GetDataMin(notifications[i].Sender)
+		notifications[i].User, err = handler.repos.UserRepo.GetDataMin(notifications[i].Content)
 		if err != nil {
 			utils.RespondWithError(w, "Error on getting data", 200)
 			return
@@ -490,7 +489,6 @@ func (handler *Handler) NewGroupRequest(wsServer *ws.Server, w http.ResponseWrit
 		utils.RespondWithError(w, "Error on getting data", 200)
 		return
 	}
-	
 	/* --------------------------- check if not admin --------------------------- */
 	isAdmin, err := handler.repos.GroupRepo.IsAdmin(groupId, userId)
 	if err != nil {
@@ -509,7 +507,6 @@ func (handler *Handler) NewGroupRequest(wsServer *ws.Server, w http.ResponseWrit
 		Content:  userId,
 		Sender:   userId,
 	}
-	
 	/* --------------------- check if request already exists -------------------- */
 	exists, err := handler.repos.NotifRepo.CheckIfExists(notification)
 	if err != nil {
@@ -524,7 +521,6 @@ func (handler *Handler) NewGroupRequest(wsServer *ws.Server, w http.ResponseWrit
 	err = handler.repos.NotifRepo.Save(notification)
 	if err != nil {
 		utils.RespondWithError(w, "Error on saving request", 200)
-		return
 	}
 
 	//SEND MESSAGE TO TO GROUP ADMIN IF IS ONLINE
@@ -533,7 +529,6 @@ func (handler *Handler) NewGroupRequest(wsServer *ws.Server, w http.ResponseWrit
 		utils.RespondWithError(w, "Error on finding group admin", 200)
 		return
 	}
-	
 	for client := range wsServer.Clients {
 		if client.ID == admin {
 			client.SendNotification(notification)
@@ -558,21 +553,11 @@ func (handler *Handler) ResponseGroupRequest(wsServer *ws.Server, w http.Respons
 		Response  string `json:"response"`
 	}
 	var response Response
-	
-	// Read body first to see what we're getting
-	bodyBytes, err := io.ReadAll(r.Body)
-	if err != nil {
-		utils.RespondWithError(w, "Error reading request body", 200)
-		return
-	}
-	
-	// Parse the JSON
-	err = json.Unmarshal(bodyBytes, &response)
+	err := json.NewDecoder(r.Body).Decode(&response)
 	if err != nil {
 		utils.RespondWithError(w, "Error on form submittion", 200)
 		return
 	}
-	
 	/* ---------------------- check if all fields provided ---------------------- */
 	if response.Response != "accept" && response.Response != "decline" {
 		utils.RespondWithError(w, "Response unvalid", 200)
@@ -585,12 +570,6 @@ func (handler *Handler) ResponseGroupRequest(wsServer *ws.Server, w http.Respons
 	/* ------------------- chack if curren user is group admin ------------------ */
 	// access user id
 	userId := r.Context().Value(utils.UserKey).(string)
-	
-	if userId == "" {
-		utils.RespondWithError(w, "Unauthorized - not logged in", 401)
-		return
-	}
-	
 	isAdmin, err := handler.repos.GroupRepo.IsAdmin(response.GroupID, userId)
 	if err != nil {
 		utils.RespondWithError(w, "Error checking admin status", 200)
@@ -600,7 +579,6 @@ func (handler *Handler) ResponseGroupRequest(wsServer *ws.Server, w http.Respons
 		utils.RespondWithError(w, "Unauthorized", 200)
 		return
 	}
-	
 	/* ----------------------------- handle response ---------------------------- */
 	// if accepted -> save as new member
 	if response.Response == "accept" {
@@ -610,13 +588,11 @@ func (handler *Handler) ResponseGroupRequest(wsServer *ws.Server, w http.Respons
 			utils.RespondWithError(w, "Internal server error", 200)
 			return
 		}
-		
 		// save as a new member of group
 		if err = handler.repos.GroupRepo.SaveMember(joinerId, response.GroupID); err != nil {
 			utils.RespondWithError(w, "Internal server error", 200)
 			return
 		}
-		
 		// if joiner online, send updated group status
 		for client := range wsServer.Clients {
 			if client.ID == joinerId {
@@ -624,13 +600,11 @@ func (handler *Handler) ResponseGroupRequest(wsServer *ws.Server, w http.Respons
 			}
 		}
 	}
-	
 	// delete from pending notification table
 	if err = handler.repos.NotifRepo.Delete(response.RequestID); err != nil {
 		utils.RespondWithError(w, "Internal server error", 200)
 		return
 	}
-	
 	utils.RespondWithSuccess(w, "Response was successful", 200)
 }
 

@@ -19,10 +19,9 @@ func (repo *GroupRepository) GetAllAndRelations(userID string) ([]models.Group, 
 			image,
 			(SELECT COUNT(*) FROM group_users WHERE group_users.group_id = groups.group_id AND group_users.user_id = ?) as member, 
 			administrator = ? as admin,
-			(SELECT COUNT(*) FROM group_users WHERE group_users.group_id = groups.group_id) as member_count,
-			(SELECT COUNT(*) FROM notifications WHERE notifications.user_id = groups.group_id AND notifications.type = 'GROUP_REQUEST' AND notifications.content = ?) as request_pending
+			(SELECT COUNT(*) FROM group_users WHERE group_users.group_id = groups.group_id) as member_count
 		FROM groups;
-	`, userID, userID, userID)
+	`, userID, userID)
 	if err != nil {
 		return groups, err
 	}
@@ -30,9 +29,8 @@ func (repo *GroupRepository) GetAllAndRelations(userID string) ([]models.Group, 
 		var group models.Group
 		var member int
 		var admin int
-		var requestPending int
 		var image sql.NullString
-		rows.Scan(&group.ID, &group.Name, &group.Privacy, &image, &member, &admin, &group.MemberCount, &requestPending)
+		rows.Scan(&group.ID, &group.Name, &group.Privacy, &image, &member, &admin, &group.MemberCount)
 		if image.Valid {
 			group.Image = image.String
 		}
@@ -41,9 +39,6 @@ func (repo *GroupRepository) GetAllAndRelations(userID string) ([]models.Group, 
 		}
 		if admin != 0 {
 			group.Administrator = true
-		}
-		if requestPending != 0 {
-			group.RequestPending = true
 		}
 		groups = append(groups, group)
 	}

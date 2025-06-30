@@ -44,6 +44,20 @@ export const useMainStore = defineStore('main', {
         body: commentData
       });
       await this.fetchPosts();
+    },
+    async submitPost(post) {
+      let postData = new FormData();
+      postData.set('body', post.body);
+      postData.set('privacy', post.privacy);
+      if (post.image) {
+        postData.append('image', post.image);
+      }
+      await fetch('http://localhost:8081/newPost', {
+        method: 'POST',
+        credentials: 'include',
+        body: postData
+      });
+      await this.fetchPosts();
     }
   }
 });

@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"social-network/pkg/models"
 	"social-network/pkg/utils"
@@ -246,21 +247,25 @@ func (handler *Handler) GetGroupEvents(w http.ResponseWriter, r *http.Request) {
 	}
 
 	userID := r.Context().Value(utils.UserKey).(string)
+	fmt.Printf("DEBUG: GetGroupEvents called for groupID=%s, userID=%s\n", groupID, userID)
 
 	// Check if user is member of the group
 	isMember, err := handler.repos.GroupRepo.IsMember(groupID, userID)
 	if err != nil {
+		fmt.Printf("DEBUG: Error checking membership: %v\n", err)
 		utils.RespondWithError(w, "Error checking membership", 200)
 		return
 	}
 
 	isAdmin, err := handler.repos.GroupRepo.IsAdmin(groupID, userID)
 	if err != nil {
+		fmt.Printf("DEBUG: Error checking admin status: %v\n", err)
 		utils.RespondWithError(w, "Error checking admin status", 200)
 		return
 	}
 
 	if !isMember && !isAdmin {
+		fmt.Printf("DEBUG: User is not a member or admin\n")
 		utils.RespondWithError(w, "Not a member of this group", 200)
 		return
 	}
@@ -268,10 +273,12 @@ func (handler *Handler) GetGroupEvents(w http.ResponseWriter, r *http.Request) {
 	// Get events with responses
 	events, err := handler.repos.EventRepo.GetGroupEventsWithResponses(groupID, userID)
 	if err != nil {
+		fmt.Printf("DEBUG: Error fetching events: %v\n", err)
 		utils.RespondWithError(w, "Error fetching events", 200)
 		return
 	}
 
+	fmt.Printf("DEBUG: Successfully fetched %d events\n", len(events))
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(events)
 }

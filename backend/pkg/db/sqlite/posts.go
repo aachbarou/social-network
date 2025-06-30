@@ -17,7 +17,20 @@ type PostRepository struct {
 // all posts if user is an author
 func (repo *PostRepository) GetAll(userID string) ([]models.Post, error) {
 	var posts []models.Post
-	rows, err := repo.DB.Query("SELECT post_id , created_by, content, image  FROM posts WHERE (group_id IS NULL  AND visibility = 'PUBLIC') OR (group_id IS NULL AND visibility = 'PRIVATE' AND (SELECT COUNT() FROM followers WHERE posts.created_by = followers.user_id AND followers.follower_id = '"+userID+"') = 1 ) OR (group_id IS NULL  AND visibility = 'ALMOST_PRIVATE' AND (SELECT COUNT() FROM almost_private WHERE almost_private.post_id = posts.post_id AND almost_private.user_id = '"+userID+"')=1) OR  (group_id IS NULL  AND created_by = '"+userID+"' )ORDER BY created_at DESC;", userID)
+	rows, err := repo.DB.Query(`
+		SELECT post_id, created_by, content, image FROM posts
+		WHERE group_id IS NULL
+		  AND (
+			created_by = ?
+			OR (SELECT COUNT(*) FROM followers WHERE followers.user_id = posts.created_by AND followers.follower_id = ?) = 1
+		  )
+		  AND (
+			visibility = 'PUBLIC'
+			OR (visibility = 'PRIVATE' AND (SELECT COUNT(*) FROM followers WHERE posts.created_by = followers.user_id AND followers.follower_id = ?) = 1)
+			OR (visibility = 'ALMOST_PRIVATE' AND (SELECT COUNT(*) FROM almost_private WHERE almost_private.post_id = posts.post_id AND almost_private.user_id = ?) = 1)
+		  )
+		ORDER BY created_at DESC;
+	`, userID, userID, userID, userID)
 	if err != nil {
 		return posts, err
 	}

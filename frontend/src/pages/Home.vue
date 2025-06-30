@@ -22,17 +22,25 @@
       </div>
       <div class="create-post-actions" v-if="showCreatePost">
         <!-- Privacy Choice Panel -->
-        <div class="privacy-choice-panel">
-          <span class="privacy-label">Spécifier la confidentialité du post :</span>
-          <label>
-            <input type="radio" value="PUBLIC" v-model="selectedPrivacy" /> Public
-          </label>
-          <label>
-            <input type="radio" value="ALMOST_PRIVATE" v-model="selectedPrivacy" /> Presque privé (followers)
-          </label>
-          <label>
-            <input type="radio" value="PRIVATE" v-model="selectedPrivacy" /> Privé (followers choisis)
-          </label>
+        <label class="privacy-label-title" for="privacy">Confidentialité du post :</label>
+        <div class="privacy-selector">
+          <label for="privacy">Privacy:</label>
+          <select id="privacy" v-model="selectedPrivacy">
+            <option value="public">Public</option>
+            <option value="almost_private">Almost Private</option>
+            <option value="private">Private</option>
+          </select>
+        </div>
+        <!-- Show followers selection if privacy is private -->
+        <div v-if="selectedPrivacy === 'private'" class="followers-selector">
+          <label>Sélectionnez les followers autorisés :</label>
+          <div v-if="followers.length === 0">Aucun follower à afficher.</div>
+          <div v-else class="followers-list">
+            <label v-for="f in followers" :key="f.id" class="follower-checkbox">
+              <input type="checkbox" :value="f.id" v-model="selectedFollowers" />
+              {{ f.nickname || f.firstName || f.lastName || f.id }}
+            </label>
+          </div>
         </div>
         <label class="action-btn">
           <input type="file" ref="imageInput" @change="handleImageChange" accept="image/*" style="display: none" />
@@ -78,7 +86,6 @@
               <div class="post-meta">
                 <h3 class="user-name">{{ post.userName }}</h3>
                 <span class="post-time">{{ post.timeAgo }}</span>
-                <span class="post-privacy-label">{{ getPrivacyLabel(post.visibility) }}</span>
               </div>
               <button class="post-menu-btn">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
@@ -184,14 +191,19 @@
 
 <script>
 import { useMainStore } from '../stores/postsStore';
+import { useFollowStore } from '../stores/followStore';
+import { useUserStore } from '../stores/userStore';
 import { storeToRefs } from 'pinia';
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 
 export default {
   name: 'Posts',
   setup() {
     const mainStore = useMainStore();
+    const followStore = useFollowStore();
+    const userStore = useUserStore();
     const { posts } = storeToRefs(mainStore);
+    const { followers } = storeToRefs(followStore);
     mainStore.fetchPosts(); // Fetch posts on component mount
     
     // For new post creation
@@ -201,6 +213,14 @@ export default {
     const imagePreview = ref('');
     const imageInput = ref(null);
     const selectedPrivacy = ref('PUBLIC');
+    const selectedFollowers = ref([]);
+    
+    // Fetch followers when privacy changes to PRIVATE
+    watch(selectedPrivacy, async (val) => {
+      if (val === 'PRIVATE' && userStore.user?.id) {
+        await followStore.fetchFollowers(userStore.user.id);
+      }
+    });
     
     // For comments
     const activeCommentPostId = ref(null);
@@ -288,7 +308,10 @@ export default {
       if (!newPostContent.value && !selectedImage.value) return;
       const formData = new FormData();
       formData.set('body', newPostContent.value);
-      formData.set('privacy', selectedPrivacy.value); // <-- send as 'privacy'!
+      formData.set('privacy', selectedPrivacy.value.toUpperCase().replace('-', '_'));
+      if (selectedPrivacy.value === 'PRIVATE') {
+        formData.set('checkedfollowers', selectedFollowers.value.join(','));
+      }
       if (selectedImage.value) {
         formData.append('image', selectedImage.value);
       }
@@ -393,6 +416,8 @@ export default {
       getCommentImage,
       isValidDate,
       selectedPrivacy,
+      followers,
+      selectedFollowers,
     };
   },
   data() {
@@ -501,6 +526,12 @@ export default {
   font-size: 0.95rem;
 }
 
+.privacy-selector {
+  margin-bottom: 0.5rem;
+  color: #fff;
+  font-size: 0.95rem;
+}
+
 .action-btn {
   display: flex;
   align-items: center;
@@ -583,16 +614,6 @@ export default {
   font-size: 0.8rem;
 }
 
-.post-privacy-label {
-  display: inline-block;
-  margin-left: 0.5rem;
-  padding: 2px 8px;
-  border-radius: 8px;
-  font-size: 0.85rem;
-  background: #444a;
-  color: #fff;
-  font-weight: 600;
-}
 
 .post-menu-btn {
   background: none;
@@ -811,6 +832,35 @@ export default {
   margin-top: 10px;
   position: relative;
   width: 150px;
+}
+
+.followers-selector {
+  margin: 10px 0 20px 0;
+  background: rgba(255,255,255,0.03);
+  border-radius: 8px;
+  padding: 10px;
+}
+.followers-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.follower-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255,255,255,0.07);
+  border-radius: 6px;
+  padding: 4px 8px;
+}
+
+.privacy-label-title {
+  font-weight: bold;
+  color: #fff;
+  font-size: 1rem;
+  margin-bottom: 6px;
+  margin-top: 10px;
+  display: block;
 }
 
 /* Mobile Responsive */
