@@ -16,14 +16,6 @@ export const useMainStore = defineStore('main', {
           const data = await res.json();
           // If backend returns { type: 'Success', posts: [...] }, extract posts
           this.posts = Array.isArray(data.posts) ? data.posts : [];
-          console.log('Posts data fetched:', this.posts);
-          
-          // Debug log to check image paths in posts
-          this.posts.forEach(post => {
-            if (post && post.imagePath) {
-              console.log(`Post ${post.id} has image path:`, post.imagePath);
-            }
-          });
         } else {
           console.error('Failed to fetch posts:', await res.text());
         }

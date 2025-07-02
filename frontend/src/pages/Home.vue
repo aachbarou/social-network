@@ -328,7 +328,6 @@ export default {
         });
         
         const result = await response.json();
-        console.log("Post creation response:", result);
         
         if (!response.ok) {
           console.error("Error creating post:", result);
@@ -353,11 +352,8 @@ export default {
       const formattedArr = arr
         .filter(post => post) // filter out nulls
         .map(post => {
-          console.log("Formatting post:", post);
-          
           // Check for image path in various possible formats
           const imagePath = post.imagePath || post.image || (post.images && post.images.length > 0 ? post.images[0] : null);
-          console.log(`Post ${post.id} final image path:`, imagePath);
           
           return {
             id: post.id,
@@ -374,7 +370,6 @@ export default {
           };
         });
       
-      console.log("Final formatted posts:", formattedArr);
       return formattedArr;
     });
     // Helper to get privacy label

@@ -267,19 +267,14 @@ onUnmounted(() => {
 
 const createPost = async () => {
   if (!newPost.value.content.trim()) {
-    console.warn('No content to post')
     return
   }
   
   creating.value = true
   try {
-    console.log('Creating post with content:', newPost.value.content)
-    
     const result = await groupStore.createGroupPost(props.groupId, newPost.value.content, newPost.value.image)
     
     if (result.success) {
-      console.log('Post created successfully!')
-      
       // Reset form
       newPost.value = { content: '', image: null, imagePreview: null }
       isCreatePostExpanded.value = false
@@ -338,13 +333,9 @@ const addComment = async (postId) => {
   commentLoading.value[postId] = true
   try {
     const commentRef = getCommentRef(postId)
-    console.log('Creating comment for post:', postId, 'content:', commentRef.content)
-    
     const result = await groupStore.createGroupPostComment(postId, commentRef.content, commentRef.image)
-    console.log('Comment creation result:', result)
     
     if (result.success) {
-      console.log('Comment created successfully!')
       // Reset comment form
       newComment.value[postId] = { content: '', image: null, imagePreview: null }
     } else {
