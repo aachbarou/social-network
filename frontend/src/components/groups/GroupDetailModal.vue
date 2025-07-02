@@ -55,6 +55,14 @@
             </button>
             
             <button 
+              @click="inviteUsers"
+              class="btn-primary"
+            >
+              <UserPlus :size="18" />
+              Inviter des utilisateurs
+            </button>
+            
+            <button 
               @click="viewMembers"
               class="btn-secondary"
             >
@@ -125,6 +133,14 @@
           </div>
         </div>
       </div>
+
+      <!-- Invite Users Modal -->
+      <InviteUsersModal 
+        v-if="showInviteModal"
+        :group="group"
+        @close="showInviteModal = false"
+        @invited="handleUsersInvited"
+      />
     </div>
   </div>
 </template>
@@ -132,6 +148,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { Users, Globe, Lock, X, MessageCircle, Clock, Settings, FileText, Camera, UserPlus } from 'lucide-vue-next'
+import InviteUsersModal from './InviteUsersModal.vue'
 
 const props = defineProps({
   group: {
@@ -140,11 +157,12 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['close', 'updated', 'chat'])
+const emit = defineEmits(['close', 'updated', 'chat', 'invite'])
 
 const members = ref([])
 const recentActivity = ref([])
 const isAdmin = ref(false)
+const showInviteModal = ref(false)
 
 const privacyIcon = computed(() => {
   return props.group.privacy === 'public' ? '🌐' : '🔒'
@@ -178,6 +196,15 @@ const viewMembers = () => {
 const manageGroup = () => {
   // TODO: Implement group management
   console.log('Manage group')
+}
+
+const inviteUsers = () => {
+  showInviteModal.value = true
+}
+
+const handleUsersInvited = (count) => {
+  console.log(`Successfully invited ${count} users`)
+  // Could show a success message or update the group data
 }
 
 const getActivityIcon = (type) => {

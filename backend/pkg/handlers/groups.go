@@ -610,13 +610,22 @@ func (handler *Handler) ResponseGroupRequest(wsServer *ws.Server, w http.Respons
 			utils.RespondWithError(w, "Error retrieving user from request", 500)
 			return
 		}
-		
-		// save as a new member of group
-		if err = handler.repos.GroupRepo.SaveMember(joinerId, response.GroupID); err != nil {
-			utils.RespondWithError(w, "Error adding member to group", 500)
+
+		// Check if user is already a member to prevent duplicates
+		isMember, err := handler.repos.GroupRepo.IsMember(response.GroupID, joinerId)
+		if err != nil {
+			utils.RespondWithError(w, "Error checking membership status", 500)
 			return
 		}
-		
+
+		// save as a new member of group only if they are not a member yet
+		if !isMember {
+			if err = handler.repos.GroupRepo.SaveMember(joinerId, response.GroupID); err != nil {
+				utils.RespondWithError(w, "Error adding member to group", 500)
+				return
+			}
+		}
+
 		// if joiner online, send updated group status
 		for client := range wsServer.Clients {
 			if client.ID == joinerId {
@@ -718,10 +727,20 @@ func (handler *Handler) ResponseInviteRequest(w http.ResponseWriter, r *http.Req
 		return
 	}
 	if strings.ToUpper(resp.Response) == "ACCEPT" {
-		err = handler.repos.GroupRepo.SaveMember(userId, groupId)
+		// Check if user is already a member to prevent duplicates
+		isMember, err := handler.repos.GroupRepo.IsMember(groupId, userId)
 		if err != nil {
 			utils.RespondWithError(w, "Internal server error", 200)
 			return
+		}
+		
+		// Only add as member if not already a member
+		if !isMember {
+			err = handler.repos.GroupRepo.SaveMember(userId, groupId)
+			if err != nil {
+				utils.RespondWithError(w, "Internal server error", 200)
+				return
+			}
 		}
 	}
 	/* ----------------------- delete pending notification ---------------------- */
@@ -869,4 +888,113 @@ func (handler *Handler) LeaveGroup(w http.ResponseWriter, r *http.Request) {
 	}
 
 	utils.RespondWithSuccess(w, "Successfully left the group", 200)
+}
+
+// CancelGroupInvite allows a group member to cancel a pending invitation.
+func (handler *Handler) CancelGroupInvite(w http.ResponseWriter, r *http.Request) {
+	w = utils.ConfigHeader(w)
+	if r.Method != "POST" {
+		utils.RespondWithError(w, "Method not allowed", 405)
+		return
+	}
+
+	// Get current user ID (the one canceling the invite)
+	currentUserId := r.Context().Value(utils.UserKey).(string)
+
+	// Parse request body
+	type CancelRequest struct {
+		GroupID  string `json:"groupId"`
+		TargetID string `json:"targetId"` // The user being uninvited
+	}
+	var cancelReq CancelRequest
+	err := json.NewDecoder(r.Body).Decode(&cancelReq)
+	if err != nil {
+		utils.RespondWithError(w, "Invalid request body", 400)
+		return
+	}
+
+	if cancelReq.GroupID == "" || cancelReq.TargetID == "" {
+		utils.RespondWithError(w, "Group ID and Target ID are required", 400)
+		return
+	}
+
+	// To cancel an invite, you must be a member or admin of the group.
+	isMember, err := handler.repos.GroupRepo.IsMember(cancelReq.GroupID, currentUserId)
+	if err != nil {
+		utils.RespondWithError(w, "Error checking membership status", 500)
+		return
+	}
+	isAdmin, err := handler.repos.GroupRepo.IsAdmin(cancelReq.GroupID, currentUserId)
+	if err != nil {
+		utils.RespondWithError(w, "Error checking admin status", 500)
+		return
+	}
+
+	if !isMember && !isAdmin {
+		utils.RespondWithError(w, "You must be a member to cancel invites.", 403)
+		return
+	}
+
+	// Create a notification model to find and delete the specific invitation.
+	// We assume anyone in the group can cancel any invite.
+	// This requires a new repo method: DeleteGroupInvite(targetId, groupId)
+	if err := handler.repos.NotifRepo.DeleteGroupInvite(cancelReq.TargetID, cancelReq.GroupID); err != nil {
+		utils.RespondWithError(w, "Error on canceling invite: "+err.Error(), 500)
+		return
+	}
+
+	utils.RespondWithSuccess(w, "Group invite canceled successfully", 200)
+}
+
+// Check existing invitations for a group
+func (handler *Handler) CheckGroupInvitations(w http.ResponseWriter, r *http.Request) {
+	w = utils.ConfigHeader(w)
+	if r.Method != "GET" {
+		utils.RespondWithError(w, "Method not allowed", 405)
+		return
+	}
+
+	// Get group ID from query
+	groupId := r.URL.Query().Get("groupId")
+	if groupId == "" {
+		utils.RespondWithError(w, "Group ID is required", 400)
+		return
+	}
+
+	userId := r.Context().Value(utils.UserKey).(string)
+
+	// Check if current user is admin or member of the group
+	isAdmin, err := handler.repos.GroupRepo.IsAdmin(groupId, userId)
+	if err != nil {
+		utils.RespondWithError(w, "Error checking admin status", 200)
+		return
+	}
+	
+	isMember, err := handler.repos.GroupRepo.IsMember(groupId, userId)
+	if err != nil {
+		utils.RespondWithError(w, "Error checking membership", 200)
+		return
+	}
+	
+	if !isAdmin && !isMember {
+		utils.RespondWithError(w, "Access denied", 403)
+		return
+	}
+
+	// Get all pending GROUP_INVITE notifications for this group
+	notifications, err := handler.repos.NotifRepo.GetGroupInvites(groupId)
+	if err != nil {
+		utils.RespondWithError(w, "Error fetching notifications", 200)
+		return
+	}
+
+	var existingInvites []string
+	for _, notif := range notifications {
+		existingInvites = append(existingInvites, notif.TargetID)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"invitedUsers": existingInvites,
+	})
 }

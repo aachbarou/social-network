@@ -145,9 +145,12 @@ func (handler *Handler) UserStatus(w http.ResponseWriter, r *http.Request) {
 // Find all followers
 func (handler *Handler) GetFollowers(w http.ResponseWriter, r *http.Request) {
 	w = utils.ConfigHeader(w)
-	// get userId from request
+	// get userId from request query, if not provided use current user from context
 	query := r.URL.Query()
 	userId := query.Get("userId")
+	if userId == "" {
+		userId = r.Context().Value(utils.UserKey).(string)
+	}
 	// request all  following users
 	followers, errUsers := handler.repos.UserRepo.GetFollowers(userId)
 	if errUsers != nil {
@@ -160,9 +163,12 @@ func (handler *Handler) GetFollowers(w http.ResponseWriter, r *http.Request) {
 // Find all who clinet is following
 func (handler *Handler) GetFollowing(w http.ResponseWriter, r *http.Request) {
 	w = utils.ConfigHeader(w)
-	// get userId from request
+	// get userId from request query, if not provided use current user from context
 	query := r.URL.Query()
 	userId := query.Get("userId")
+	if userId == "" {
+		userId = r.Context().Value(utils.UserKey).(string)
+	}
 	// request all  following users
 	followers, errUsers := handler.repos.UserRepo.GetFollowing(userId)
 	if errUsers != nil {
@@ -348,6 +354,34 @@ func (handler *Handler) ChatList(w http.ResponseWriter, r *http.Request) {
 	}
 
 	utils.RespondWithUsers(w, followers, 200)
+}
+
+/* -------------------------------------------------------------------------- */
+/*                                  search users                              */
+/* -------------------------------------------------------------------------- */
+// SearchUsers allows searching for users by name or nickname
+// Used for group invitations and finding users
+func (handler *Handler) SearchUsers(w http.ResponseWriter, r *http.Request) {
+	w = utils.ConfigHeader(w)
+
+	// Get search query
+	query := r.URL.Query().Get("q")
+	if query == "" {
+		utils.RespondWithUsers(w, []models.User{}, 200)
+		return
+	}
+
+	// Get current user ID
+	userId := r.Context().Value(utils.UserKey).(string)
+
+	// Search users in database
+	users, err := handler.repos.UserRepo.SearchUsers(query, userId)
+	if err != nil {
+		utils.RespondWithError(w, "Error searching users", 500)
+		return
+	}
+
+	utils.RespondWithUsers(w, users, 200)
 }
 
 /* --------------------------------- helper --------------------------------- */

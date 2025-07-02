@@ -24,6 +24,16 @@
       <MessageCircle :size="18" />
       Chat
     </button>
+
+    <!-- Invite button for members -->
+    <button 
+      v-if="isMember || isAdmin"
+      @click="$emit('invite')" 
+      class="action-badge invite-action"
+    >
+      <UserPlus :size="18" />
+      Inviter
+    </button>
     
     <!-- Leave button for members (not admins) -->
     <button 
@@ -56,7 +66,8 @@ import {
   MessageCircle, 
   LogOut, 
   ArrowLeft, 
-  Loader2 
+  Loader2,
+  UserPlus
 } from 'lucide-vue-next'
 
 const router = useRouter()
@@ -76,7 +87,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['join', 'leave', 'chat'])
+const emit = defineEmits(['join', 'leave', 'chat', 'invite'])
 
 const isJoining = ref(false)
 const isLeaving = ref(false)
@@ -169,6 +180,12 @@ const handleLeave = async () => {
   color: rgba(34, 197, 94, 1);
 }
 
+.invite-action {
+  background: rgba(59, 130, 246, 0.15);
+  border-color: rgba(59, 130, 246, 0.3);
+  color: rgba(59, 130, 246, 1);
+}
+
 .leave-action {
   background: rgba(239, 68, 68, 0.15);
   border-color: rgba(239, 68, 68, 0.3);
@@ -183,6 +200,11 @@ const handleLeave = async () => {
 .chat-action:hover {
   background: rgba(34, 197, 94, 0.2);
   border-color: rgba(34, 197, 94, 0.4);
+}
+
+.invite-action:hover {
+  background: rgba(59, 130, 246, 0.2);
+  border-color: rgba(59, 130, 246, 0.4);
 }
 
 .leave-action:hover {

@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"strings"
 
 	"social-network/pkg/models"
 )
@@ -131,9 +132,7 @@ func (repo *UserRepository) GetProfileMin(userID string) (models.User, error) {
 	row := repo.DB.QueryRow("SELECT  IFNULL(nickname, first_name || ' ' || last_name), image FROM users WHERE user_id = ? LIMIT 1", userID)
 	var user models.User
 	if err := row.Scan(&user.Nickname, &user.ImagePath); err != nil {
-		if err != nil {
-			return user, err
-		}
+		return user, err
 	}
 	user.ID = userID
 	return user, nil
@@ -142,13 +141,13 @@ func (repo *UserRepository) GetProfileMin(userID string) (models.User, error) {
 func (repo *UserRepository) GetFollowers(userID string) ([]models.User, error) {
 	var users []models.User
 
-	rows, err := repo.DB.Query("SELECT user_id, IFNULL(nickname, first_name || ' ' || last_name) FROM users WHERE (SELECT COUNT(*) FROM followers WHERE followers.user_id = '"+userID+"' AND follower_id = users.user_id) = 1 ;", userID)
+	rows, err := repo.DB.Query("SELECT user_id, first_name, last_name, IFNULL(nickname, first_name || ' ' || last_name), image FROM users WHERE (SELECT COUNT(*) FROM followers WHERE followers.user_id = ? AND follower_id = users.user_id) = 1", userID)
 	if err != nil {
 		return users, err
 	}
 	for rows.Next() {
 		var user models.User
-		rows.Scan(&user.ID, &user.Nickname)
+		rows.Scan(&user.ID, &user.FirstName, &user.LastName, &user.Nickname, &user.ImagePath)
 		users = append(users, user)
 	}
 	return users, nil
@@ -157,13 +156,13 @@ func (repo *UserRepository) GetFollowers(userID string) ([]models.User, error) {
 func (repo *UserRepository) GetFollowing(userID string) ([]models.User, error) {
 	var users []models.User
 
-	rows, err := repo.DB.Query("SELECT user_id, IFNULL(nickname, first_name || ' ' || last_name) FROM users WHERE (SELECT COUNT(*) FROM followers WHERE followers.follower_id = '"+userID+"' AND user_id = users.user_id) = 1 ;", userID)
+	rows, err := repo.DB.Query("SELECT user_id, first_name, last_name, IFNULL(nickname, first_name || ' ' || last_name), image FROM users WHERE (SELECT COUNT(*) FROM followers WHERE followers.follower_id = ? AND user_id = users.user_id) = 1", userID)
 	if err != nil {
 		return users, err
 	}
 	for rows.Next() {
 		var user models.User
-		rows.Scan(&user.ID, &user.Nickname)
+		rows.Scan(&user.ID, &user.FirstName, &user.LastName, &user.Nickname, &user.ImagePath)
 		users = append(users, user)
 	}
 	return users, nil
@@ -212,4 +211,44 @@ func (repo *UserRepository) DeleteFollower(userId, followerId string) error {
 		return err
 	}
 	return nil
+}
+
+// SearchUsers searches for users by first name, last name, or nickname
+// Excludes the current user and returns limited info
+func (repo *UserRepository) SearchUsers(query, currentUserID string) ([]models.User, error) {
+	searchTerm := "%" + strings.ToLower(query) + "%"
+
+	sqlQuery := `
+		SELECT user_id, first_name, last_name, nickname, image
+		FROM users
+		WHERE user_id != ? 
+		AND (LOWER(first_name) LIKE ? OR LOWER(last_name) LIKE ? OR LOWER(nickname) LIKE ?)
+		ORDER BY first_name, last_name
+		LIMIT 20
+	`
+
+	rows, err := repo.DB.Query(sqlQuery, currentUserID, searchTerm, searchTerm, searchTerm)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var users []models.User
+	for rows.Next() {
+		var user models.User
+		err := rows.Scan(
+			&user.ID,
+			&user.FirstName,
+			&user.LastName,
+			&user.Nickname,
+			&user.ImagePath,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		users = append(users, user)
+	}
+
+	return users, nil
 }

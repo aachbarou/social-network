@@ -394,12 +394,12 @@ export const useGroupStore = defineStore('group', () => {
 
   const respondToInvitation = async (invitationId, action) => {
     try {
-      const response = await fetch('http://localhost:8081/responseInviteRequest', {
+      const response = await fetch('http://localhost:8081/responseGroupInvite', {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          notificationId: invitationId, 
+          requestId: invitationId, 
           response: action === 'accept' ? 'ACCEPT' : 'DECLINE' 
         })
       })

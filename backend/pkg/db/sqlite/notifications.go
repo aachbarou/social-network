@@ -51,6 +51,40 @@ func (repo *NotifRepository) GetGroupRequests(groupId string) ([]models.Notifica
 	return notifications, nil
 }
 
+// GetGroupInvites retrieves all pending GROUP_INVITE notifications for a specific group.
+func (repo *NotifRepository) GetGroupInvites(groupId string) ([]models.Notification, error) {
+	var notifications = []models.Notification{}
+	// For GROUP_INVITE, the `content` field of the notification stores the `groupId`.
+	rows, err := repo.DB.Query("SELECT notif_id, user_id, type, content, sender FROM notifications WHERE content = ? AND type = 'GROUP_INVITE';", groupId)
+	if err != nil {
+		return notifications, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var notif models.Notification
+		// Scan into the fields of the Notification struct
+		if err := rows.Scan(&notif.ID, &notif.TargetID, &notif.Type, &notif.Content, &notif.Sender); err != nil {
+			// Log the error and continue if possible, or return
+			continue
+		}
+		notifications = append(notifications, notif)
+	}
+
+	return notifications, nil
+}
+
+// DeleteGroupInvite removes a specific group invitation notification.
+func (repo *NotifRepository) DeleteGroupInvite(targetId, groupId string) error {
+	// A GROUP_INVITE is uniquely identified by the user it targets (`user_id`) 
+	// and the group it's for (`content`).
+	_, err := repo.DB.Exec("DELETE FROM notifications WHERE user_id = ? AND content = ? AND type = 'GROUP_INVITE'", targetId, groupId)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (repo *NotifRepository) GetUserFromRequest(notificationId string) (string, error) {
 	row := repo.DB.QueryRow("SELECT content FROM notifications WHERE notif_id = ? ", notificationId)
 	var userId string

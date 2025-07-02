@@ -41,4 +41,5 @@ type UserRepository interface {
 
 	GetStatus(userID string) (string, error) // get current status
 	SetStatus(User) error                    // change status (needs id and new status)
+	SearchUsers(query, currentUserID string) ([]User, error) // search users by name or nickname
 }

@@ -27,6 +27,10 @@ type NotifRepository interface {
 	GetGroupId(notificationId string) (string, error)
 	// get all notifications for client
 	GetAll(userId string) ([]Notification, error)
+	// get all pending invites for a group
+	GetGroupInvites(groupId string) ([]Notification, error)
+	// delete a specific group invite
+	DeleteGroupInvite(targetId, groupId string) error
 	// get Chat_request notifications based on receiver_id
 	GetCahtNotifById(notificationId string) (Notification, error)
 	// get content form chat_request notification

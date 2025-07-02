@@ -47,6 +47,7 @@ func setRoutes(handler *handlers.Handler, wsServer *ws.Server) http.Handler {
 
 	/* ---------------------------------- users --------------------------------- */
 	mux.HandleFunc("/allUsers", handler.Auth(handler.AllUsers))       // all users + info except current
+	mux.HandleFunc("/searchUsers", handler.Auth(handler.SearchUsers)) // search users for invites
 	mux.HandleFunc("/followers", handler.Auth(handler.GetFollowers))  //follower list
 	mux.HandleFunc("/following", handler.Auth(handler.GetFollowing))  // following list
 	mux.HandleFunc("/currentUser", handler.Auth(handler.CurrentUser)) //current user data
@@ -87,12 +88,18 @@ func setRoutes(handler *handlers.Handler, wsServer *ws.Server) http.Handler {
 	mux.HandleFunc("/newGroupInvite", handler.Auth(func(w http.ResponseWriter, r *http.Request) { // invite new users to group
 		handler.NewGroupInvite(wsServer, w, r)
 	}))
+	mux.HandleFunc("/responseGroupInvite", handler.Auth(handler.ResponseInviteRequest)) // response to group invitation
 	mux.HandleFunc("/newGroupRequest", handler.Auth(func(w http.ResponseWriter, r *http.Request) { // invite new users to group
 		handler.NewGroupRequest(wsServer, w, r)
 	}))
 	mux.HandleFunc("/responseGroupRequest", handler.Auth(func(w http.ResponseWriter, r *http.Request) {
 		handler.ResponseGroupRequest(wsServer, w, r)
-	})) // response to join request
+	}))
+
+	mux.HandleFunc("/cancelGroupInvite", handler.Auth(handler.CancelGroupInvite))
+
+	// get all pending invites for a group
+	mux.HandleFunc("/checkGroupInvitations", handler.Auth(handler.CheckGroupInvitations)) // check existing invitations
 	mux.HandleFunc("/joinPublicGroup", handler.Auth(handler.JoinPublicGroup)) // join public group directly
 	mux.HandleFunc("/leaveGroup", handler.Auth(handler.LeaveGroup))           // leave group (members only, not admins)
 

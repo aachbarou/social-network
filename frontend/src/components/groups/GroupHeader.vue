@@ -28,6 +28,7 @@
           @join="$emit('join')"
           @leave="$emit('leave')"
           @chat="$emit('chat')"
+          @invite="$emit('invite')"
         />
       </div>
     </div>
@@ -54,7 +55,7 @@ const props = defineProps({
   }
 })
 
-defineEmits(['join', 'leave', 'chat'])
+defineEmits(['join', 'leave', 'chat', 'invite'])
 
 const bannerStyle = computed(() => {
   if (props.group.image) {

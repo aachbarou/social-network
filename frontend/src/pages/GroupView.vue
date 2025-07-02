@@ -16,6 +16,7 @@
         @join="handleJoinGroup"
         @leave="showLeaveConfirmation"
         @chat="openChat"
+        @invite="showInviteModal = true"
       />
 
       <!-- Navigation Tabs -->
@@ -69,6 +70,14 @@
       @confirm="handleLeaveGroup"
       @cancel="showLeaveModal = false"
     />
+
+    <!-- Invite Users Modal -->
+    <InviteUsersModal 
+      v-if="showInviteModal"
+      :group="groupStore.currentGroup"
+      @close="showInviteModal = false"
+      @invited="handleUsersInvited"
+    />
   </div>
 </template>
 
@@ -85,6 +94,7 @@ import GroupPosts from '../components/groups/GroupPosts.vue'
 import GroupMembers from '../components/groups/GroupMembers.vue'
 import GroupEvents from '../components/groups/GroupEvents.vue'
 import LeaveGroupModal from '../components/groups/LeaveGroupModal.vue'
+import InviteUsersModal from '../components/groups/InviteUsersModal.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -93,6 +103,7 @@ const groupStore = useGroupStore()
 // State
 const activeTab = ref('posts')
 const showLeaveModal = ref(false)
+const showInviteModal = ref(false)
 const leaveError = ref(null)
 
 // Computed
@@ -165,6 +176,11 @@ const handleLeaveGroup = async () => {
 
 const openChat = () => {
   alert(`Chat du groupe ${groupStore.currentGroup.name} - Fonctionnalité à implémenter`)
+}
+
+const handleUsersInvited = (count) => {
+  console.log(`Successfully invited ${count} users`)
+  // Silently handle the invitation success
 }
 
 // Lifecycle
