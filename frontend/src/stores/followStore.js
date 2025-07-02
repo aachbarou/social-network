@@ -32,9 +32,12 @@ export const useFollowStore = defineStore('follow', () => {
   // Récupère les demandes de suivi en attente (pour profils privés)
   async function fetchFollowRequests() {
     try {
-      const res = await fetch('http://localhost:8081/pendingFollowRequests', { credentials: 'include' })
+      const res = await fetch('http://localhost:8081/notifications', { credentials: 'include' })
       const data = await res.json()
-      followRequests.value = (res.ok && data.requests) ? data.requests : []
+      // Filtrer les notifications de type FOLLOW
+      followRequests.value = (res.ok && data.notifications)
+        ? data.notifications.filter(n => n.type === 'FOLLOW')
+        : []
     } catch (e) {
       followRequests.value = []
     }
@@ -98,7 +101,7 @@ export const useFollowStore = defineStore('follow', () => {
 
   // Vérifie si une demande de suivi est en attente
   function isFollowRequested(userId) {
-    return followRequests.value.some(r => r.id === userId)
+    return followRequests.value.some(r => r.targetId === userId)
   }
 
   return {

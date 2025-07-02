@@ -4,10 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
+
 	"social-network/pkg/models"
 	"social-network/pkg/utils"
 	ws "social-network/pkg/wsServer"
-	"strings"
 )
 
 /* -------------------------------------------------------------------------- */
@@ -97,7 +98,7 @@ func (handler *Handler) UserData(w http.ResponseWriter, r *http.Request) {
 // changes user status in db return status
 // in case of turning to PUBLIC -> also accept follow requests
 func (handler *Handler) UserStatus(w http.ResponseWriter, r *http.Request) {
-	statusList := []string{"PUBLIC", "PRIVATE"} //possible status
+	statusList := []string{"PUBLIC", "PRIVATE"} // possible status
 	var client models.User
 
 	w = utils.ConfigHeader(w)
@@ -191,27 +192,37 @@ func (handler *Handler) Follow(wsServer *ws.Server, w http.ResponseWriter, r *ht
 		return
 	}
 	if reqUserStatus == "PUBLIC" {
-		//SAVE AS FOLLOWER
+		// SAVE AS FOLLOWER
 		err := handler.repos.UserRepo.SaveFollower(reqUserId, currentUserId)
 		if err != nil {
 			utils.RespondWithError(w, "Error on saving follower", 200)
 			return
 		}
 	} else if reqUserStatus == "PRIVATE" {
-		//SAVE IN NOTIFICATIONS as pending folllow request
+		// Vérifier si une demande de suivi est déjà en attente
 		notification := models.Notification{
-			ID:       utils.UniqueId(),
-			TargetID: reqUserId,
 			Type:     "FOLLOW",
+			TargetID: reqUserId,
 			Content:  currentUserId,
 			Sender:   currentUserId,
 		}
-		err := handler.repos.NotifRepo.Save(notification)
+		exists, err := handler.repos.NotifRepo.CheckIfExists(notification)
+		if err != nil {
+			utils.RespondWithError(w, "Error on checking follow request", 200)
+			return
+		}
+		if exists {
+			utils.RespondWithError(w, "Demande déjà envoyée", 200)
+			return
+		}
+		// SAVE IN NOTIFICATIONS as pending folllow request
+		notification.ID = utils.UniqueId()
+		err = handler.repos.NotifRepo.Save(notification)
 		if err != nil {
 			utils.RespondWithError(w, "Error on save", 200)
 			return
 		}
-		//if user online send notification about follow request
+		// if user online send notification about follow request
 		for client := range wsServer.Clients {
 			if client.ID == reqUserId {
 				client.SendNotification(notification)
