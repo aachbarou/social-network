@@ -7,6 +7,7 @@ type Comment struct {
 	Content   string `json:"content"`
 	ImagePath string `json:"image"`
 	AuthorID  string `json:"authorId"`
+	CreatedAt string `json:"createdAt"`
 	// for sending back with author
 	Author User `json:"author"`
 }

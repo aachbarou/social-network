@@ -251,6 +251,80 @@ export const useGroupStore = defineStore('group', () => {
     }
   }
 
+  const createGroupPost = async (groupId, content, image = null) => {
+    try {
+      const formData = new FormData()
+      formData.append('groupId', groupId)
+      formData.append('body', content)  // Backend expects 'body', not 'content'
+      
+      if (image) {
+        formData.append('image', image)
+      }
+
+      const response = await fetch('http://localhost:8081/newGroupPost', {
+        method: 'POST',
+        credentials: 'include',
+        body: formData
+      })
+
+      if (response.ok) {
+        // Refresh group posts to include the new post
+        await fetchGroupPosts(groupId)
+        return { success: true }
+      } else {
+        const errorData = await response.json().catch(() => ({ message: 'Unknown error' }))
+        return { 
+          success: false, 
+          message: errorData.message || 'Erreur lors de la création du post'
+        }
+      }
+    } catch (err) {
+      console.error('Error creating group post:', err)
+      return { 
+        success: false, 
+        message: 'Erreur de connexion'
+      }
+    }
+  }
+
+  const createGroupPostComment = async (postId, content, image = null) => {
+    try {
+      const formData = new FormData()
+      formData.append('postid', postId)  // Backend expects 'postid', not 'postId'
+      formData.append('body', content)   // Backend expects 'body', not 'content'
+      
+      if (image) {
+        formData.append('image', image)
+      }
+
+      const response = await fetch('http://localhost:8081/newComment', {
+        method: 'POST',
+        credentials: 'include',
+        body: formData
+      })
+
+      if (response.ok) {
+        // Refresh group posts to include the new comment
+        if (currentGroup.value?.id) {
+          await fetchGroupPosts(currentGroup.value.id)
+        }
+        return { success: true }
+      } else {
+        const errorData = await response.json().catch(() => ({ message: 'Unknown error' }))
+        return { 
+          success: false, 
+          message: errorData.message || 'Erreur lors de la création du commentaire'
+        }
+      }
+    } catch (err) {
+      console.error('Error creating group post comment:', err)
+      return { 
+        success: false, 
+        message: 'Erreur de connexion'
+      }
+    }
+  }
+
   const joinGroup = async (groupId, isPublic = true) => {
     const endpoint = isPublic 
       ? 'http://localhost:8081/joinPublicGroup'
@@ -476,6 +550,8 @@ export const useGroupStore = defineStore('group', () => {
     fetchGroupPosts,
     fetchGroupEvents,
     updateEventResponse,
+    createGroupPost,
+    createGroupPostComment,
     joinGroup,
     leaveGroup,
     respondToInvitation,

@@ -19,7 +19,7 @@ type PostRepository struct {
 func (repo *PostRepository) GetAll(userID string) ([]models.Post, error) {
 	var posts []models.Post
 	rows, err := repo.DB.Query(`
-		SELECT post_id, created_by, content, image, visibility FROM posts
+		SELECT post_id, created_by, content, image, visibility, created_at FROM posts
 		WHERE group_id IS NULL
 		  AND (
 			visibility = 'PUBLIC'
@@ -34,7 +34,7 @@ func (repo *PostRepository) GetAll(userID string) ([]models.Post, error) {
 	}
 	for rows.Next() {
 		var post models.Post
-		rows.Scan(&post.ID, &post.AuthorID, &post.Content, &post.ImagePath, &post.Visibility)
+		rows.Scan(&post.ID, &post.AuthorID, &post.Content, &post.ImagePath, &post.Visibility, &post.CreatedAt)
 		posts = append(posts, post)
 	}
 	return posts, nil
@@ -43,7 +43,7 @@ func (repo *PostRepository) GetAll(userID string) ([]models.Post, error) {
 func (repo *PostRepository) GetUserPosts(userID, currentUserID string) ([]models.Post, error) {
 	var posts []models.Post
 	rows, err := repo.DB.Query(`
-		SELECT post_id, created_by, content, image, visibility FROM posts 
+		SELECT post_id, created_by, content, image, visibility, created_at FROM posts 
 		WHERE group_id IS NULL 
 		  AND created_by = ?
 		  AND (
@@ -59,7 +59,7 @@ func (repo *PostRepository) GetUserPosts(userID, currentUserID string) ([]models
 	}
 	for rows.Next() {
 		var post models.Post
-		rows.Scan(&post.ID, &post.AuthorID, &post.Content, &post.ImagePath, &post.Visibility)
+		rows.Scan(&post.ID, &post.AuthorID, &post.Content, &post.ImagePath, &post.Visibility, &post.CreatedAt)
 		posts = append(posts, post)
 	}
 	return posts, nil
@@ -67,13 +67,13 @@ func (repo *PostRepository) GetUserPosts(userID, currentUserID string) ([]models
 
 func (repo *PostRepository) GetGroupPosts(groupID string) ([]models.Post, error) {
 	var posts []models.Post
-	rows, err := repo.DB.Query("SELECT post_id , created_by, content, image  FROM posts WHERE group_id = ? ORDER BY created_at DESC;", groupID)
+	rows, err := repo.DB.Query("SELECT post_id , created_by, content, image, created_at  FROM posts WHERE group_id = ? ORDER BY created_at DESC;", groupID)
 	if err != nil {
 		return posts, err
 	}
 	for rows.Next() {
 		var post models.Post
-		rows.Scan(&post.ID, &post.AuthorID, &post.Content, &post.ImagePath)
+		rows.Scan(&post.ID, &post.AuthorID, &post.Content, &post.ImagePath, &post.CreatedAt)
 		posts = append(posts, post)
 	}
 	return posts, nil

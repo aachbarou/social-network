@@ -11,13 +11,13 @@ type CommentRepository struct {
 
 func (repo *CommentRepository) Get(postID string) ([]models.Comment, error) {
 	var comments []models.Comment
-	rows, err := repo.DB.Query("SELECT comment_id, created_by, content, image FROM comments WHERE post_id = ? ORDER BY created_at DESC;", postID)
+	rows, err := repo.DB.Query("SELECT comment_id, created_by, content, image, created_at FROM comments WHERE post_id = ? ORDER BY created_at DESC;", postID)
 	if err != nil {
 		return comments, err
 	}
 	for rows.Next() {
 		var comment models.Comment
-		rows.Scan(&comment.ID, &comment.AuthorID, &comment.Content, &comment.ImagePath)
+		rows.Scan(&comment.ID, &comment.AuthorID, &comment.Content, &comment.ImagePath, &comment.CreatedAt)
 		comments = append(comments, comment)
 	}
 	return comments, nil

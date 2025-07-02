@@ -32,6 +32,8 @@
         <GroupPosts 
           v-if="activeTab === 'posts'"
           :posts="groupStore.currentGroupPosts"
+          :group-id="route.params.id"
+          :can-post="groupStore.isCurrentUserMember || groupStore.isCurrentUserAdmin"
         />
 
         <!-- Members Tab -->

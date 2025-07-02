@@ -7,6 +7,7 @@ type Post struct {
 	AuthorID   string `json:"authorId"`
 	Visibility string `json:"visibility"`
 	GroupID    string `json:"groupId"`
+	CreatedAt  string `json:"createdAt"`
 	// for sending back with author
 	Author   User      `json:"author"`
 	Comments []Comment `json:"comments"`
