@@ -37,7 +37,7 @@ func (handler *Handler) Register(w http.ResponseWriter, r *http.Request) {
 	// Validate all user fields
 	errValid := utils.ValidateNewUser(newUser)
 	if errValid != nil {
-		utils.RespondWithError(w, "Error in validation", 400)
+		utils.RespondWithError(w, errValid.Error(), 400)
 		return
 	}
 
