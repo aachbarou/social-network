@@ -17,7 +17,6 @@
           v-model="newPostContent"
           @click="showCreatePost = true"
         />
-                     <div>showCreatePost: {{ showCreatePost }}</div>
 
       </div>
       <div class="create-post-actions" v-if="showCreatePost">
@@ -31,8 +30,8 @@
             <option value="private">Private</option>
           </select>
         </div>
-        <!-- Show followers selection if privacy is private -->
-        <div v-if="selectedPrivacy === 'private'" class="followers-selector">
+        <!-- Show followers selection if privacy is private or almost private -->
+        <div v-if="selectedPrivacy === 'private' || selectedPrivacy === 'almost_private'" class="followers-selector">
           <label>Sélectionnez les followers autorisés :</label>
           <div v-if="followers.length === 0">Aucun follower à afficher.</div>
           <div v-else class="followers-list">
@@ -215,9 +214,9 @@ export default {
     const selectedPrivacy = ref('PUBLIC');
     const selectedFollowers = ref([]);
     
-    // Fetch followers when privacy changes to PRIVATE
+    // Fetch followers when privacy changes to PRIVATE or ALMOST_PRIVATE
     watch(selectedPrivacy, async (val) => {
-      if (val === 'PRIVATE' && userStore.user?.id) {
+      if ((val === 'private' || val === 'almost_private') && userStore.user?.id) {
         await followStore.fetchFollowers(userStore.user.id);
       }
     });
@@ -309,7 +308,7 @@ export default {
       const formData = new FormData();
       formData.set('body', newPostContent.value);
       formData.set('privacy', selectedPrivacy.value.toUpperCase().replace('-', '_'));
-      if (selectedPrivacy.value === 'PRIVATE') {
+      if (selectedPrivacy.value === 'private' || selectedPrivacy.value === 'almost_private') {
         formData.set('checkedfollowers', selectedFollowers.value.join(','));
       }
       if (selectedImage.value) {
