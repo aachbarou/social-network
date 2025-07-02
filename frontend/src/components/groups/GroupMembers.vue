@@ -1,7 +1,9 @@
 <template>
   <div class="members-section">
     <div v-if="members.length === 0" class="empty-state">
-      <span class="empty-icon">👥</span>
+      <div class="empty-icon">
+        <Users :size="64" />
+      </div>
       <h3>Aucun membre</h3>
       <p>Ce groupe n'a pas encore de membres</p>
     </div>
@@ -9,10 +11,14 @@
       <div v-for="member in members" :key="member.id" class="member-card">
         <div class="member-avatar">
           <img v-if="member.profilePic" :src="member.profilePic" :alt="member.name" />
-          <span v-else class="default-member">👤</span>
+          <div v-else class="default-member">
+            <Users :size="24" />
+          </div>
         </div>
         <div class="member-info">
-          <h4>{{ member.firstName }} {{ member.lastName }} <span v-if="member.following" class="admin-crown">👑</span></h4>
+          <h4>{{ member.firstName }} {{ member.lastName }} 
+            <Crown v-if="member.following" class="admin-crown" :size="16" />
+          </h4>
         </div>
       </div>
     </div>
@@ -20,6 +26,7 @@
 </template>
 
 <script setup>
+import { Users, Crown } from 'lucide-vue-next'
 defineProps({
   members: {
     type: Array,

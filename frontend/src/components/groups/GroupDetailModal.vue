@@ -12,25 +12,25 @@
               @error="handleImageError"
             />
             <div v-else class="default-avatar">
-              <span class="avatar-icon">👥</span>
+              <Users :size="32" />
             </div>
           </div>
           <div>
             <h2>{{ group.name }}</h2>
             <div class="group-meta">
               <span class="member-count">
-                <span class="icon">👤</span>
+                <Users :size="16" />
                 {{ group.memberCount || 0 }} membres
               </span>
               <span class="group-privacy" :class="group.privacy">
-                <span class="icon">{{ privacyIcon }}</span>
+                <component :is="group.privacy === 'public' ? Globe : Lock" :size="16" />
                 {{ privacyLabel }}
               </span>
             </div>
           </div>
         </div>
         <button @click="$emit('close')" class="close-btn">
-          <span class="icon">✕</span>
+          <X :size="20" />
         </button>
       </div>
 
@@ -50,7 +50,7 @@
               @click="$emit('chat', group.id)"
               class="btn-primary"
             >
-              <span class="icon">💬</span>
+              <MessageCircle :size="18" />
               Chat du groupe
             </button>
             
@@ -58,7 +58,7 @@
               @click="viewMembers"
               class="btn-secondary"
             >
-              <span class="icon">👥</span>
+              <Users :size="18" />
               Voir les membres
             </button>
             
@@ -67,7 +67,7 @@
               @click="manageGroup"
               class="btn-secondary"
             >
-              <span class="icon">⚙️</span>
+              <Settings :size="18" />
               Gérer le groupe
             </button>
           </div>
@@ -77,7 +77,9 @@
         <div class="section">
           <h3>Activité récente</h3>
           <div v-if="recentActivity.length === 0" class="empty-activity">
-            <span class="empty-icon">🕐</span>
+            <div class="empty-icon">
+              <Clock :size="48" />
+            </div>
             <p>Aucune activité récente</p>
           </div>
           <div v-else class="activity-list">
@@ -87,7 +89,7 @@
               class="activity-item"
             >
               <div class="activity-icon">
-                <span class="icon">{{ getActivityIcon(activity.type) }}</span>
+                <component :is="getActivityIcon(activity.type)" :size="16" />
               </div>
               <div class="activity-content">
                 <p>{{ activity.description }}</p>
@@ -114,7 +116,7 @@
                 @error="handleMemberImageError"
               />
               <div v-else class="default-member-avatar">
-                <span class="member-icon">👤</span>
+                <Users :size="16" />
               </div>
             </div>
             <div v-if="group.memberCount > 6" class="more-members">
@@ -129,6 +131,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { Users, Globe, Lock, X, MessageCircle, Clock, Settings, FileText, Camera, UserPlus } from 'lucide-vue-next'
 
 const props = defineProps({
   group: {
@@ -179,10 +182,10 @@ const manageGroup = () => {
 
 const getActivityIcon = (type) => {
   const iconMap = {
-    'post': '📄',
-    'member_joined': '👤➕',
-    'photo': '📷',
-    'default': '🕐'
+    'post': FileText,
+    'member_joined': UserPlus,
+    'photo': Camera,
+    'default': Clock
   }
   return iconMap[type] || iconMap.default
 }

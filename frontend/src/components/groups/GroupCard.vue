@@ -16,11 +16,11 @@
       
       <div class="group-meta">
         <span class="member-count">
-          <span class="icon">👤</span>
+          <Users :size="16" />
           {{ group.memberCount || 0 }} membres
         </span>
         <span class="group-privacy" :class="group.privacy">
-          <span class="icon">{{ privacyIcon }}</span>
+          <component :is="privacyIcon" :size="16" />
           {{ privacyLabel }}
         </span>
       </div>
@@ -33,7 +33,7 @@
         @click="$emit('view', group)"
         class="btn-secondary"
       >
-        <span class="icon">👁️</span>
+        <Eye :size="16" />
         Voir
       </button>
 
@@ -43,7 +43,7 @@
           @click="$emit('chat', group.id)"
           class="btn-primary"
         >
-          <span class="icon">💬</span>
+          <MessageCircle :size="16" />
           Chat
         </button>
       </template>
@@ -57,21 +57,21 @@
           :disabled="props.loading"
         >
           <template v-if="props.loading">
-            <span class="icon animate-spin">⏳</span>
+            <Clock class="animate-spin" :size="16" />
             {{ group.privacy === 'public' ? 'Rejoindre...' : 'Envoi...' }}
           </template>
           <template v-else-if="group.privacy === 'public'">
-            <span class="icon">➕</span>
+            <Plus :size="16" />
             Rejoindre
           </template>
           <template v-else>
-            <span class="icon">✉️</span>
+            <Mail :size="16" />
             Demander
           </template>
         </button>
         
         <div v-else class="request-pending">
-          <span class="icon">⏰</span>
+          <Clock :size="16" />
           Demande envoyée
         </div>
       </template>
@@ -81,6 +81,7 @@
 
 <script setup>
 import { computed, ref } from 'vue'
+import { Users, Eye, MessageCircle, Plus, Mail, Clock, Globe, Lock } from 'lucide-vue-next'
 
 const props = defineProps({
   group: {
@@ -100,7 +101,7 @@ const props = defineProps({
 const emit = defineEmits(['view', 'chat', 'join-request'])
 
 const privacyIcon = computed(() => {
-  return props.group.privacy === 'public' ? '🌐' : '🔒'
+  return props.group.privacy === 'public' ? Globe : Lock
 })
 
 const privacyLabel = computed(() => {
@@ -314,6 +315,15 @@ const handleJoinRequest = async () => {
 }
 
 /* Responsive */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
 @media (max-width: 768px) {
   .group-actions {
     flex-direction: column;

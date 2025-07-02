@@ -5,7 +5,7 @@
       <div class="modal-header">
         <h2>Créer un nouveau groupe</h2>
         <button @click="$emit('close')" class="close-btn">
-          <span class="icon">✕</span>
+          <X :size="20" />
         </button>
       </div>
 
@@ -22,7 +22,7 @@
                 alt="Aperçu"
               />
               <div v-else class="upload-placeholder">
-                <span class="upload-icon">📷</span>
+                <Camera :size="32" />
                 <span>Cliquez pour ajouter une image</span>
               </div>
             </div>
@@ -76,7 +76,7 @@
                 value="public"
               />
               <div class="option-content">
-                <span class="icon">🌐</span>
+                <Globe :size="24" />
                 <div>
                   <div class="option-title">Public</div>
                   <div class="option-desc">Tout le monde peut voir et rejoindre</div>
@@ -91,7 +91,7 @@
                 value="private"
               />
               <div class="option-content">
-                <span class="icon">🔒</span>
+                <Lock :size="24" />
                 <div>
                   <div class="option-title">Privé</div>
                   <div class="option-desc">Seuls les membres peuvent voir le contenu</div>
@@ -120,7 +120,7 @@
               Création...
             </template>
             <template v-else>
-              <span class="icon">+</span>
+              <Plus :size="18" />
               Créer le groupe
             </template>
           </button>
@@ -132,6 +132,7 @@
 
 <script setup>
 import { ref, computed, reactive } from 'vue'
+import { X, Camera, Globe, Lock, Plus } from 'lucide-vue-next'
 
 const emit = defineEmits(['close', 'created'])
 
@@ -350,10 +351,7 @@ const handleSubmit = async () => {
   transition: all 0.3s ease;
 }
 
-.upload-icon {
-  font-size: 2rem;
-  margin-bottom: 0.5rem;
-}
+
 
 .form-input,
 .form-textarea {

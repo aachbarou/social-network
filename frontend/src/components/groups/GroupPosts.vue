@@ -1,7 +1,9 @@
 <template>
   <div class="posts-section">
     <div v-if="posts.length === 0" class="empty-state">
-      <span class="empty-icon">📝</span>
+      <div class="empty-icon">
+        <FileText :size="64" />
+      </div>
       <h3>Aucun post</h3>
       <p>Soyez le premier à publier dans ce groupe</p>
     </div>
@@ -10,7 +12,9 @@
         <div class="post-header">
           <div class="author-avatar">
             <img v-if="post.author.profilePic" :src="post.author.profilePic" :alt="post.author.name" />
-            <span v-else class="default-author">👤</span>
+            <div v-else class="default-author">
+              <Users :size="24" />
+            </div>
           </div>
           <div class="post-info">
             <h4>{{ post.author.firstName }} {{ post.author.lastName }}</h4>
@@ -27,6 +31,7 @@
 </template>
 
 <script setup>
+import { FileText, Users } from 'lucide-vue-next'
 defineProps({
   posts: {
     type: Array,
@@ -127,9 +132,8 @@ const formatDate = (dateString) => {
 }
 
 .empty-icon {
-  font-size: 3rem;
-  margin-bottom: 1rem;
-  opacity: 0.6;
+  margin-bottom: 20px;
+  color: rgba(255, 255, 255, 0.4);
 }
 
 .empty-state h3 {

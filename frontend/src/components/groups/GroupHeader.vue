@@ -10,11 +10,11 @@
             <p v-if="group.description" class="group-description">{{ group.description }}</p>
             <div class="group-meta">
               <span class="member-count">
-                <span class="icon">👤</span>
+                <Users :size="16" />
                 {{ group.memberCount || 0 }} membres
               </span>
               <span class="group-privacy" :class="group.privacy">
-                <span class="icon">{{ group.privacy === 'public' ? '🌐' : '🔒' }}</span>
+                <component :is="group.privacy === 'public' ? Globe : Lock" :size="16" />
                 {{ group.privacy === 'public' ? 'Public' : 'Privé' }}
               </span>
             </div>
@@ -36,6 +36,7 @@
 
 <script setup>
 import { computed } from 'vue'
+import { Users, Globe, Lock } from 'lucide-vue-next'
 import GroupActions from './GroupActions.vue'
 
 const props = defineProps({

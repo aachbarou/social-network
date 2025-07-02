@@ -7,13 +7,15 @@
 
     <!-- Loading State -->
     <div v-if="loading" class="loading-state">
-      <div class="spinner"></div>
+      <Loader2 class="spinner-icon" />
       <p>Chargement des demandes...</p>
     </div>
 
     <!-- No Requests -->
     <div v-else-if="!requests.length" class="no-requests">
-      <div class="no-requests-icon">📫</div>
+      <div class="no-requests-icon">
+        <Mail :size="64" />
+      </div>
       <h3>Aucune demande</h3>
       <p>Il n'y a actuellement aucune demande d'adhésion en attente.</p>
     </div>
@@ -35,7 +37,7 @@
               @error="handleImageError"
             />
             <div v-else class="default-avatar">
-              <span class="avatar-icon">👤</span>
+              <Users :size="24" />
             </div>
           </div>
           
@@ -48,7 +50,7 @@
             </p>
             <div class="request-meta">
               <span v-if="request.user.nickname" class="user-nickname">
-                <span class="icon">@</span>
+                <AtSign :size="16" />
                 {{ request.user.nickname }}
               </span>
             </div>
@@ -62,7 +64,7 @@
             class="btn-decline"
             :disabled="processingRequests.includes(request.id)"
           >
-            <span class="icon">❌</span>
+            <UserX :size="18" />
             Refuser
           </button>
           <button 
@@ -70,7 +72,7 @@
             class="btn-accept"
             :disabled="processingRequests.includes(request.id)"
           >
-            <span class="icon">✅</span>
+            <UserCheck :size="18" />
             Accepter
           </button>
         </div>
@@ -81,6 +83,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { Users, UserCheck, UserX, Mail, AtSign, Loader2 } from 'lucide-vue-next'
 
 const props = defineProps({
   groupId: {
@@ -204,12 +207,8 @@ onMounted(() => {
   color: rgba(255, 255, 255, 0.7);
 }
 
-.spinner {
-  width: 40px;
-  height: 40px;
-  border: 4px solid rgba(255, 255, 255, 0.3);
-  border-top: 4px solid #e879c6;
-  border-radius: 50%;
+.spinner-icon {
+  color: #e879c6;
   animation: spin 1s linear infinite;
   margin-bottom: 20px;
 }
@@ -221,8 +220,8 @@ onMounted(() => {
 }
 
 .no-requests-icon {
-  font-size: 4em;
   margin-bottom: 20px;
+  color: rgba(255, 255, 255, 0.4);
 }
 
 .no-requests h3 {
@@ -290,7 +289,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 24px;
+  color: white;
 }
 
 .request-details {
@@ -322,10 +321,6 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 4px;
-}
-
-.icon {
-  font-size: 0.9em;
 }
 
 .request-actions {

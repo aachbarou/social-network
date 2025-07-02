@@ -6,11 +6,11 @@
     </div>
     <div class="header-actions">
       <button @click="$emit('create')" class="create-btn">
-        <span class="icon">+</span>
+        <Plus :size="18" />
         Créer un groupe
       </button>
       <button @click="$emit('refresh')" class="refresh-btn" :disabled="loading">
-        <span class="icon" :class="{ 'animate-spin': loading }">↻</span>
+        <RefreshCw :size="18" :class="{ 'animate-spin': loading }" />
         Actualiser
       </button>
     </div>
@@ -18,6 +18,8 @@
 </template>
 
 <script setup>
+import { Plus, RefreshCw } from 'lucide-vue-next'
+
 defineProps({
   loading: {
     type: Boolean,
@@ -118,6 +120,15 @@ defineEmits(['create', 'refresh'])
 .icon {
   font-size: 1rem;
   font-weight: bold;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
 }
 
 /* Responsive */

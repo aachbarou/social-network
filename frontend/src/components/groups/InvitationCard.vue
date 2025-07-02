@@ -10,7 +10,7 @@
           @error="handleImageError"
         />
         <div v-else class="default-avatar">
-          <span class="avatar-icon">👥</span>
+          <Users :size="24" />
         </div>
       </div>
       
@@ -22,11 +22,11 @@
         </p>
         <div class="invitation-meta">
           <span class="member-count">
-            <span class="icon">👤</span>
+            <Users :size="16" />
             {{ invitation.group.memberCount || 0 }} membres
           </span>
           <span class="invitation-date">
-            <span class="icon">📅</span>
+            <Calendar :size="16" />
             {{ formatDate(invitation.createdAt) }}
           </span>
         </div>
@@ -40,7 +40,7 @@
         class="btn-decline"
         :disabled="loading"
       >
-        <span class="icon">❌</span>
+        <UserX :size="18" />
         Refuser
       </button>
       <button 
@@ -48,7 +48,7 @@
         class="btn-accept"
         :disabled="loading"
       >
-        <span class="icon">✅</span>
+        <UserCheck :size="18" />
         Accepter
       </button>
     </div>
@@ -57,6 +57,7 @@
 
 <script setup>
 import { ref } from 'vue'
+import { Users, Calendar, UserCheck, UserX } from 'lucide-vue-next'
 
 const props = defineProps({
   invitation: {

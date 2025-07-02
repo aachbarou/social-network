@@ -21,10 +21,13 @@
       <!-- My Groups Tab -->
       <div v-else-if="activeTab === 'my'" class="groups-grid">
         <div v-if="userGroups.length === 0" class="empty-state">
-          <span class="empty-icon">👥</span>
+          <div class="empty-icon">
+            <Users :size="64" />
+          </div>
           <h3>Aucun groupe</h3>
           <p>Vous n'êtes membre d'aucun groupe pour le moment</p>
           <button @click="showCreateModal = true" class="btn-primary">
+            <Plus :size="20" />
             Créer votre premier groupe
           </button>
         </div>
@@ -41,7 +44,9 @@
       <!-- Discover Tab -->
       <div v-else-if="activeTab === 'discover'" class="groups-grid">
         <div v-if="discoveryGroups.length === 0" class="empty-state">
-          <span class="empty-icon">🔍</span>
+          <div class="empty-icon">
+            <Search :size="64" />
+          </div>
           <h3>Aucun groupe public</h3>
           <p>Il n'y a pas de groupes publics disponibles</p>
         </div>
@@ -59,7 +64,9 @@
       <!-- Invitations Tab -->
       <div v-else-if="activeTab === 'invitations'" class="invitations-list">
         <div v-if="groupInvitations.length === 0" class="empty-state">
-          <span class="empty-icon">✉️</span>
+          <div class="empty-icon">
+            <Mail :size="64" />
+          </div>
           <h3>Aucune invitation</h3>
           <p>Vous n'avez pas d'invitations de groupe en attente</p>
         </div>
@@ -74,7 +81,9 @@
       <!-- Requests Tab -->
       <div v-else-if="activeTab === 'requests'" class="requests-list">
         <div v-if="groupRequests.length === 0" class="empty-state">
-          <span class="empty-icon">📋</span>
+          <div class="empty-icon">
+            <ClipboardList :size="64" />
+          </div>
           <h3>Aucune demande</h3>
           <p>Aucune demande d'adhésion en attente pour vos groupes</p>
         </div>
@@ -101,6 +110,7 @@ import { ref, computed, onMounted, onActivated, onUnmounted, watch, nextTick } f
 import { useRouter } from 'vue-router'
 import { useGroupStore } from '../stores/groupStore'
 import { storeToRefs } from 'pinia'
+import { Users, Search, Mail, ClipboardList, Plus } from 'lucide-vue-next'
 
 // Components
 import GroupsHeader from '../components/groups/GroupsHeader.vue'
@@ -132,25 +142,25 @@ const tabs = computed(() => [
   {
     id: 'my',
     label: 'Mes groupes',
-    icon: '👥',
+    icon: Users,
     count: userGroups.value.length
   },
   {
     id: 'discover',
     label: 'Découvrir',
-    icon: '🔍',
+    icon: Search,
     count: 0
   },
   {
     id: 'invitations',
     label: 'Invitations',
-    icon: '✉️',
+    icon: Mail,
     count: groupInvitations.value.length
   },
   {
     id: 'requests',
     label: 'Demandes',
-    icon: '📋',
+    icon: ClipboardList,
     count: groupRequests.value.length
   }
 ])
@@ -355,9 +365,9 @@ watch([userGroups, publicGroups], ([newUserGroups, newPublicGroups]) => {
 }
 
 .empty-icon {
-  font-size: 3rem;
   margin-bottom: 1rem;
   opacity: 0.6;
+  color: rgba(255, 255, 255, 0.5);
 }
 
 .empty-state h3 {

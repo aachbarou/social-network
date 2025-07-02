@@ -6,7 +6,7 @@
       @click="$emit('tab-change', tab.id)"
       :class="['tab-btn', { active: activeTab === tab.id }]"
     >
-      <span class="icon">{{ tab.icon }}</span>
+      <component :is="tab.icon" :size="18" />
       {{ tab.label }}
       <span v-if="tab.count > 0" class="tab-count">{{ tab.count }}</span>
     </button>

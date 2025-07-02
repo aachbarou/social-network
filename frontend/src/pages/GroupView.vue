@@ -50,7 +50,9 @@
 
     <!-- Error State -->
     <div v-else class="error-state">
-      <span class="error-icon">❌</span>
+      <div class="error-icon">
+        <X :size="48" />
+      </div>
       <h3>Groupe introuvable</h3>
       <p>Ce groupe n'existe pas ou vous n'avez pas accès</p>
       <button @click="$router.push('/groups')" class="btn-primary">
@@ -74,6 +76,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useGroupStore } from '../stores/groupStore'
+import { FileText, Users, Calendar, X } from 'lucide-vue-next'
 
 // Components
 import GroupHeader from '../components/groups/GroupHeader.vue'
@@ -94,9 +97,9 @@ const leaveError = ref(null)
 
 // Computed
 const tabs = computed(() => [
-  { id: 'posts', label: 'Posts', icon: '📝' },
-  { id: 'members', label: 'Membres', icon: '👥' },
-  { id: 'events', label: 'Événements', icon: '📅' }
+  { id: 'posts', label: 'Posts', icon: FileText },
+  { id: 'members', label: 'Membres', icon: Users },
+  { id: 'events', label: 'Événements', icon: Calendar }
 ])
 
 // Methods

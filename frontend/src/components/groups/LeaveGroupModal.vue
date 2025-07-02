@@ -7,13 +7,13 @@
       <div class="modal-body">
         <!-- Error Message -->
         <div v-if="errorMessage" class="error-message">
-          <span class="icon">❌</span>
+          <X :size="20" />
           {{ errorMessage }}
         </div>
         
         <!-- Success Message -->
         <div v-else-if="successMessage" class="success-message">
-          <span class="icon">✅</span>
+          <Check :size="20" />
           {{ successMessage }}
         </div>
         
@@ -21,7 +21,8 @@
         <template v-else>
           <p>Êtes-vous sûr de vouloir quitter le groupe <strong>{{ group?.name }}</strong> ?</p>
           <div v-if="props.isAdmin" class="admin-warning-text">
-            ⚠️ <strong>Attention :</strong> En tant qu'administrateur, vous ne pouvez pas quitter votre propre groupe.
+            <AlertTriangle :size="20" />
+            <strong>Attention :</strong> En tant qu'administrateur, vous ne pouvez pas quitter votre propre groupe.
             <br>
             Vous devez d'abord transférer votre rôle d'administrateur à un autre membre.
           </div>
@@ -38,12 +39,11 @@
           class="btn-danger" 
           :disabled="isLeaving"
         >
-          <span 
-            class="icon" 
+          <component 
+            :is="isLeaving ? Clock : LogOut"
+            :size="18" 
             :class="{ 'animate-spin': isLeaving }"
-          >
-            {{ isLeaving ? '⏳' : '🚪' }}
-          </span>
+          />
           {{ isLeaving ? 'Quitter...' : 'Quitter' }}
         </button>
         <button 
@@ -62,6 +62,7 @@
 
 <script setup>
 import { ref, watch } from 'vue'
+import { X, Check, LogOut, Clock, AlertTriangle } from 'lucide-vue-next'
 
 const props = defineProps({
   group: {

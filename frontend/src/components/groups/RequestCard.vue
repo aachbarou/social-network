@@ -10,7 +10,7 @@
           @error="handleImageError"
         />
         <div v-else class="default-avatar">
-          <span class="avatar-icon">👤</span>
+          <Users :size="24" />
         </div>
       </div>
       
@@ -23,11 +23,11 @@
         </p>
         <div class="request-meta">
           <span class="request-date">
-            <span class="icon">📅</span>
+            <Calendar :size="16" />
             {{ formatDate(request.createdAt) }}
           </span>
           <span v-if="request.user.mutualFriends" class="mutual-friends">
-            <span class="icon">👥</span>
+            <Users :size="16" />
             {{ request.user.mutualFriends }} amis en commun
           </span>
         </div>
@@ -41,7 +41,7 @@
         class="btn-decline"
         :disabled="loading"
       >
-        <span class="icon">❌</span>
+        <UserX :size="18" />
         Refuser
       </button>
       <button 
@@ -49,7 +49,7 @@
         class="btn-accept"
         :disabled="loading"
       >
-        <span class="icon">✅</span>
+        <UserCheck :size="18" />
         Accepter
       </button>
     </div>
@@ -58,6 +58,7 @@
 
 <script setup>
 import { ref } from 'vue'
+import { Users, Calendar, UserCheck, UserX } from 'lucide-vue-next'
 
 const props = defineProps({
   request: {
