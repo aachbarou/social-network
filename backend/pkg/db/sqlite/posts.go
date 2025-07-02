@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+
 	"social-network/pkg/models"
 )
 
@@ -9,7 +10,7 @@ type PostRepository struct {
 	DB *sql.DB
 }
 
-//Returns all posts for user ->
+// Returns all posts for user ->
 // group posts if is a member
 // all public posts
 // Private posts if is a follower
@@ -18,41 +19,47 @@ type PostRepository struct {
 func (repo *PostRepository) GetAll(userID string) ([]models.Post, error) {
 	var posts []models.Post
 	rows, err := repo.DB.Query(`
-		SELECT post_id, created_by, content, image FROM posts
+		SELECT post_id, created_by, content, image, visibility FROM posts
 		WHERE group_id IS NULL
 		  AND (
-			created_by = ?
-			OR (SELECT COUNT(*) FROM followers WHERE followers.user_id = posts.created_by AND followers.follower_id = ?) = 1
-		  )
-		  AND (
 			visibility = 'PUBLIC'
-			OR (visibility = 'PRIVATE' AND (SELECT COUNT(*) FROM followers WHERE posts.created_by = followers.user_id AND followers.follower_id = ?) = 1)
 			OR (visibility = 'ALMOST_PRIVATE' AND (SELECT COUNT(*) FROM almost_private WHERE almost_private.post_id = posts.post_id AND almost_private.user_id = ?) = 1)
+			OR (visibility = 'PRIVATE' AND (SELECT COUNT(*) FROM private_post_access WHERE private_post_access.post_id = posts.post_id AND private_post_access.user_id = ?) = 1)
+			OR created_by = ?
 		  )
 		ORDER BY created_at DESC;
-	`, userID, userID, userID, userID)
+	`, userID, userID, userID)
 	if err != nil {
 		return posts, err
 	}
 	for rows.Next() {
 		var post models.Post
-		rows.Scan(&post.ID, &post.AuthorID, &post.Content, &post.ImagePath)
+		rows.Scan(&post.ID, &post.AuthorID, &post.Content, &post.ImagePath, &post.Visibility)
 		posts = append(posts, post)
 	}
 	return posts, nil
 }
 
 func (repo *PostRepository) GetUserPosts(userID, currentUserID string) ([]models.Post, error) {
-	// get all posts that do not belong to group
-	// get group posts only if current user alsa a member or admin
 	var posts []models.Post
-	rows, err := repo.DB.Query("SELECT post_id , created_by, content, image  FROM posts WHERE (group_id IS NULL  AND visibility = 'PUBLIC' AND created_by = '" + userID + "') OR (group_id IS NULL AND visibility = 'PRIVATE' AND created_by = '" + userID + "' AND (SELECT COUNT() FROM followers WHERE posts.created_by = followers.user_id AND followers.follower_id = '" + currentUserID + "') = 1 ) OR (group_id IS NULL  AND visibility = 'ALMOST_PRIVATE' AND created_by = '" + userID + "' AND (SELECT COUNT() FROM almost_private WHERE almost_private.post_id = posts.post_id AND almost_private.user_id = '" + currentUserID + "')=1) OR (group_id IS NULL  AND created_by = '" + userID + "' AND '" + userID + "' = '" + currentUserID + "') ORDER BY created_at DESC;")
+	rows, err := repo.DB.Query(`
+		SELECT post_id, created_by, content, image, visibility FROM posts 
+		WHERE group_id IS NULL 
+		  AND created_by = ?
+		  AND (
+			visibility = 'PUBLIC'
+			OR (visibility = 'ALMOST_PRIVATE' AND (SELECT COUNT(*) FROM almost_private WHERE almost_private.post_id = posts.post_id AND almost_private.user_id = ?) = 1)
+			OR (visibility = 'PRIVATE' AND (SELECT COUNT(*) FROM private_post_access WHERE private_post_access.post_id = posts.post_id AND private_post_access.user_id = ?) = 1)
+			OR ? = ?
+		  )
+		ORDER BY created_at DESC;
+	`, userID, currentUserID, currentUserID, userID, currentUserID)
 	if err != nil {
 		return posts, err
 	}
 	for rows.Next() {
 		var post models.Post
-		rows.Scan(&post.ID, &post.AuthorID, &post.Content, &post.ImagePath)
+		rows.Scan(&post.ID, &post.AuthorID, &post.Content, &post.ImagePath, &post.Visibility)
 		posts = append(posts, post)
 	}
 	return posts, nil
@@ -85,6 +92,17 @@ func (repo *PostRepository) New(post models.Post) error {
 
 func (repo *PostRepository) SaveAccess(postId, userId string) error {
 	stmt, err := repo.DB.Prepare("INSERT INTO almost_private (post_id, user_id) values (?,?)")
+	if err != nil {
+		return err
+	}
+	if _, err := stmt.Exec(postId, userId); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (repo *PostRepository) SavePrivateAccess(postId, userId string) error {
+	stmt, err := repo.DB.Prepare("INSERT INTO private_post_access (post_id, user_id) values (?,?)")
 	if err != nil {
 		return err
 	}

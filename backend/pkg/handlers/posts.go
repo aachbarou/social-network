@@ -102,16 +102,32 @@ func (handler *Handler) NewPost(w http.ResponseWriter, r *http.Request) {
 	// in case of "almost private post", save users with access
 	if newPost.Visibility == "ALMOST_PRIVATE" {
 		accessListRaw := r.PostFormValue("checkedfollowers")
-		accessList := strings.Split(accessListRaw, ",")
-		for i := 0; i < len(accessList); i++ {
-			// save each follower in db
-			err = handler.repos.PostRepo.SaveAccess(newPost.ID, accessList[i])
-			if errDB != nil {
-				utils.RespondWithError(w, "Internal server error", 200)
-				return
+		if accessListRaw != "" {
+			accessList := strings.Split(accessListRaw, ",")
+			for i := 0; i < len(accessList); i++ {
+				// save each follower in db
+				err = handler.repos.PostRepo.SaveAccess(newPost.ID, accessList[i])
+				if err != nil {
+					utils.RespondWithError(w, "Internal server error", 200)
+					return
+				}
 			}
 		}
-
+	}
+	// in case of "private post", save selected users with access
+	if newPost.Visibility == "PRIVATE" {
+		accessListRaw := r.PostFormValue("checkedfollowers")
+		if accessListRaw != "" {
+			accessList := strings.Split(accessListRaw, ",")
+			for i := 0; i < len(accessList); i++ {
+				// save each selected follower in private access table
+				err = handler.repos.PostRepo.SavePrivateAccess(newPost.ID, accessList[i])
+				if err != nil {
+					utils.RespondWithError(w, "Internal server error", 200)
+					return
+				}
+			}
+		}
 	}
 	utils.RespondWithSuccess(w, "New post created", 200)
 }
