@@ -2,7 +2,7 @@
   <div class="group-actions">
     <!-- Join button for non-members -->
     <button 
-      v-if="canJoinGroup"
+      v-if="canJoinGroup && !group.requestPending"
       @click="handleJoin" 
       class="btn-primary"
       :disabled="isJoining"
@@ -14,6 +14,15 @@
       />
       {{ isJoining ? 'Rejoindre...' : (group.privacy === 'public' ? 'Rejoindre le groupe' : 'Demander à rejoindre') }}
     </button>
+    
+    <!-- Request pending for non-members -->
+    <div 
+      v-if="canJoinGroup && group.requestPending"
+      class="request-pending-badge"
+    >
+      <Clock :size="18" />
+      Demande envoyée
+    </div>
     
     <!-- Chat button for members -->
     <button 
@@ -67,7 +76,8 @@ import {
   LogOut, 
   ArrowLeft, 
   Loader2,
-  UserPlus
+  UserPlus,
+  Clock
 } from 'lucide-vue-next'
 
 const router = useRouter()
@@ -216,6 +226,22 @@ const handleLeave = async () => {
   opacity: 0.6;
   cursor: not-allowed;
   transform: none;
+}
+
+.request-pending-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: rgba(255, 193, 7, 1);
+  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.8);
+  padding: 10px 18px;
+  border-radius: 30px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 193, 7, 0.3);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  background: rgba(255, 193, 7, 0.15);
 }
 
 .btn-icon {

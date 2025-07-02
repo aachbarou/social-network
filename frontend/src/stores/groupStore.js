@@ -324,6 +324,10 @@ export const useGroupStore = defineStore('group', () => {
           if (group) {
             group.requestPending = true
           }
+          // Also update currentGroup if it's the same group
+          if (currentGroup.value && currentGroup.value.id === groupId) {
+            currentGroup.value.requestPending = true
+          }
           // Then refresh all group data to get the updated state from backend
           await loadGroupsData()
         }
@@ -354,6 +358,14 @@ export const useGroupStore = defineStore('group', () => {
         // Update current group membership status
         if (currentGroup.value && currentGroup.value.id === groupId) {
           currentGroup.value.member = false
+          // Clear any pending request state when leaving
+          currentGroup.value.requestPending = false
+        }
+        // Also update in publicGroups array
+        const group = publicGroups.value.find(g => g.id === groupId)
+        if (group) {
+          group.member = false
+          group.requestPending = false
         }
         // Refresh group data
         await fetchGroupDetails(groupId)
