@@ -20,18 +20,6 @@
           </div>
         </div>
       </div>
-
-      <!-- Delete Button (only for event creator or group admin) -->
-      <div v-if="canDelete" class="event-actions">
-        <button 
-          @click="deleteEvent" 
-          class="delete-btn"
-          :disabled="loading"
-          title="Supprimer l'événement"
-        >
-          <Trash2 :size="18" />
-        </button>
-      </div>
     </div>
 
     <!-- Event Description -->
@@ -134,8 +122,7 @@ import {
   CheckCircle, 
   XCircle, 
   HelpCircle,
-  ChevronDown,
-  Trash2
+  ChevronDown
 } from 'lucide-vue-next'
 import { useGroupStore } from '../../stores/groupStore'
 import { useUserStore } from '../../stores/userStore'
@@ -151,29 +138,11 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['update-response', 'delete-event'])
+const emit = defineEmits(['update-response'])
 
 const groupStore = useGroupStore()
 const userStore = useUserStore()
 const showParticipants = ref(false)
-
-// Check if current user can delete this event
-const canDelete = computed(() => {
-  // Add dependency on eventsUpdateCounter to force re-evaluation
-  groupStore.eventsUpdateCounter
-  
-  const currentUser = userStore.user
-  const isGroupAdmin = groupStore.isCurrentUserAdmin
-  
-  if (!currentUser) {
-    return false
-  }
-  
-  // Event creator can delete (check both possible field names)
-  const isEventCreator = props.event.authorId === currentUser.id || props.event.authorID === currentUser.id
-  
-  return isEventCreator || isGroupAdmin
-})
 
 const formatDay = (dateString) => {
   const date = new Date(dateString)
@@ -213,26 +182,6 @@ const updateResponse = async (response) => {
     console.error('Failed to update event response')
   }
 }
-
-const deleteEvent = async () => {
-  if (props.loading) return
-  
-  const confirmMessage = `Êtes-vous sûr de vouloir supprimer l'événement "${props.event.title}" ?\n\nCette action est irréversible.`
-  
-  if (confirm(confirmMessage)) {
-    try {
-      const result = await groupStore.deleteEvent(props.event.id)
-      if (result.success) {
-        emit('delete-event', props.event.id)
-      } else {
-        alert(result.message || 'Erreur lors de la suppression de l\'événement')
-      }
-    } catch (error) {
-      console.error('Delete error:', error)
-      alert('Erreur lors de la suppression de l\'événement')
-    }
-  }
-}
 </script>
 
 <style scoped>
@@ -256,39 +205,6 @@ const deleteEvent = async () => {
   padding: 24px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   position: relative;
-}
-
-.event-actions {
-  position: absolute;
-  top: 16px;
-  right: 16px;
-}
-
-.delete-btn {
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.3);
-  border-radius: 12px;
-  color: rgba(239, 68, 68, 0.8);
-  padding: 8px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  backdrop-filter: blur(10px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.delete-btn:hover {
-  background: rgba(239, 68, 68, 0.2);
-  border-color: rgba(239, 68, 68, 0.5);
-  color: rgba(239, 68, 68, 1);
-  transform: translateY(-1px);
-}
-
-.delete-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  transform: none;
 }
 
 .event-date {

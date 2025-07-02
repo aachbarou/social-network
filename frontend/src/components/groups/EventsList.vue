@@ -29,7 +29,6 @@
         :key="event.id"
         :event="event"
         :loading="false"
-        @delete-event="handleDeleteEvent"
       />
     </div>
 
@@ -124,11 +123,6 @@ const handleCreateEvent = async (eventData) => {
   } finally {
     creatingEvent.value = false
   }
-}
-
-const handleDeleteEvent = (eventId) => {
-  console.log('Event deleted from EventCard:', eventId)
-  // Event is already removed from store by EventCard, no need to reload
 }
 
 onMounted(() => {
