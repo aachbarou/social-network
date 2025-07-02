@@ -99,18 +99,20 @@ func (handler *Handler) NewPost(w http.ResponseWriter, r *http.Request) {
 		utils.RespondWithError(w, "Error in form validation", 200)
 		return
 	}
-	// in case of "almost private post", save users with access
+	// in case of "almost private post", automatically give access to all followers
 	if newPost.Visibility == "ALMOST_PRIVATE" {
-		accessListRaw := r.PostFormValue("checkedfollowers")
-		if accessListRaw != "" {
-			accessList := strings.Split(accessListRaw, ",")
-			for i := 0; i < len(accessList); i++ {
-				// save each follower in db
-				err = handler.repos.PostRepo.SaveAccess(newPost.ID, accessList[i])
-				if err != nil {
-					utils.RespondWithError(w, "Internal server error", 200)
-					return
-				}
+		// Get all followers of the post creator
+		followers, err := handler.repos.UserRepo.GetFollowers(userId)
+		if err != nil {
+			utils.RespondWithError(w, "Error getting followers", 200)
+			return
+		}
+		// Give access to each follower
+		for _, follower := range followers {
+			err = handler.repos.PostRepo.SaveAccess(newPost.ID, follower.ID)
+			if err != nil {
+				utils.RespondWithError(w, "Internal server error", 200)
+				return
 			}
 		}
 	}

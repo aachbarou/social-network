@@ -30,8 +30,8 @@
             <option value="private">Private</option>
           </select>
         </div>
-        <!-- Show followers selection if privacy is private or almost private -->
-        <div v-if="selectedPrivacy === 'private' || selectedPrivacy === 'almost_private'" class="followers-selector">
+        <!-- Show followers selection only for private posts -->
+        <div v-if="selectedPrivacy === 'private'" class="followers-selector">
           <label>Sélectionnez les followers autorisés :</label>
           <div v-if="followers.length === 0">Aucun follower à afficher.</div>
           <div v-else class="followers-list">
@@ -40,6 +40,10 @@
               {{ f.nickname || f.firstName || f.lastName || f.id }}
             </label>
           </div>
+        </div>
+        <!-- Info text for almost private posts -->
+        <div v-if="selectedPrivacy === 'almost_private'" class="almost-private-info">
+          <p><em>Ce post sera visible par tous vos followers automatiquement.</em></p>
         </div>
         <label class="action-btn">
           <input type="file" ref="imageInput" @change="handleImageChange" accept="image/*" style="display: none" />
@@ -308,7 +312,8 @@ export default {
       const formData = new FormData();
       formData.set('body', newPostContent.value);
       formData.set('privacy', selectedPrivacy.value.toUpperCase().replace('-', '_'));
-      if (selectedPrivacy.value === 'private' || selectedPrivacy.value === 'almost_private') {
+      // Only send selected followers for private posts, not for almost_private
+      if (selectedPrivacy.value === 'private') {
         formData.set('checkedfollowers', selectedFollowers.value.join(','));
       }
       if (selectedImage.value) {
@@ -838,6 +843,20 @@ export default {
   background: rgba(255,255,255,0.03);
   border-radius: 8px;
   padding: 10px;
+}
+
+.almost-private-info {
+  margin: 10px 0 20px 0;
+  background: rgba(52, 152, 219, 0.1);
+  border: 1px solid rgba(52, 152, 219, 0.3);
+  border-radius: 8px;
+  padding: 10px;
+}
+
+.almost-private-info p {
+  margin: 0;
+  color: #3498db;
+  font-size: 0.9rem;
 }
 .followers-list {
   display: flex;
