@@ -73,6 +73,21 @@
               <input 
                 v-model="form.privacy" 
                 type="radio" 
+                value="public"
+              />
+              <div class="option-content">
+                <span class="icon">🌐</span>
+                <div>
+                  <div class="option-title">Public</div>
+                  <div class="option-desc">Tout le monde peut voir et rejoindre</div>
+                </div>
+              </div>
+            </label>
+            
+            <label class="privacy-option">
+              <input 
+                v-model="form.privacy" 
+                type="radio" 
                 value="private"
               />
               <div class="option-content">

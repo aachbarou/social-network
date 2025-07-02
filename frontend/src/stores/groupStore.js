@@ -60,7 +60,6 @@ export const useGroupStore = defineStore('group', () => {
       if (response.ok) {
         const data = await response.json()
         userGroups.value = data.groups || []
-        console.log('User groups fetched:', userGroups.value.length)
       } else {
         throw new Error('Failed to fetch user groups')
       }
@@ -78,7 +77,6 @@ export const useGroupStore = defineStore('group', () => {
       if (response.ok) {
         const data = await response.json()
         publicGroups.value = data.groups || []
-        console.log('Public groups fetched:', publicGroups.value.length)
       } else {
         throw new Error('Failed to fetch public groups')
       }
@@ -110,7 +108,7 @@ export const useGroupStore = defineStore('group', () => {
           .filter(notif => notif.type === 'GROUP_REQUEST')
           .map(notif => ({
             id: notif.id,
-            user: notif.sender || { firstName: 'Utilisateur', lastName: '', profilePic: null },
+            user: notif.user || { firstName: 'Utilisateur', lastName: '', profilePic: null },
             group: notif.group || { name: 'Groupe' },
             createdAt: notif.createdAt
           }))
@@ -128,19 +126,16 @@ export const useGroupStore = defineStore('group', () => {
 
   const loadGroupsData = async () => {
     loading.value = true
-    console.log('Store: Starting to load groups data...')
     try {
       await Promise.all([
         fetchUserGroups(),
         fetchPublicGroups(),
         fetchNotifications()
       ])
-      console.log('Store: All data loaded successfully')
     } catch (error) {
       console.error('Store: Error loading groups data:', error)
     } finally {
       loading.value = false
-      console.log('Store: Loading complete')
     }
   }
 
@@ -199,23 +194,18 @@ export const useGroupStore = defineStore('group', () => {
   const fetchGroupEvents = async (groupId) => {
     const now = Date.now()
     if (loading.value || (now - lastFetchTime < FETCH_COOLDOWN)) {
-      console.log('Skipping events fetch - too frequent')
       return
     }
     
     lastFetchTime = now
     loading.value = true
     try {
-      console.log('Fetching events for groupId:', groupId)
       const response = await fetch(`http://localhost:8081/getGroupEvents?groupId=${groupId}`, {
         credentials: 'include'
       })
-      console.log('Events response status:', response.status)
       if (response.ok) {
         const data = await response.json()
-        console.log('Events response data:', data)
         events.value = Array.isArray(data) ? data : []
-        console.log('Events set to:', events.value)
       } else {
         const errorText = await response.text()
         console.error('Events fetch failed:', response.status, errorText)
@@ -292,20 +282,26 @@ export const useGroupStore = defineStore('group', () => {
   const joinGroup = async (groupId, isPublic = true) => {
     const endpoint = isPublic 
       ? 'http://localhost:8081/joinPublicGroup'
-      : 'http://localhost:8081/newGroupRequest'
+      : `http://localhost:8081/newGroupRequest?groupId=${groupId}`
     
     try {
       // Set group loading state
       setGroupLoading(groupId, true)
 
-      const response = await fetch(endpoint, {
+      const requestOptions = {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        credentials: 'include',
-        body: JSON.stringify({ groupId })
-      })
+        credentials: 'include'
+      }
+
+      // For public groups, send groupId in body, for private groups it's in URL
+      if (isPublic) {
+        requestOptions.body = JSON.stringify({ groupId })
+      }
+
+      const response = await fetch(endpoint, requestOptions)
 
       if (response.ok) {
         if (isPublic) {
@@ -323,11 +319,13 @@ export const useGroupStore = defineStore('group', () => {
           await fetchGroupMembers(groupId)
           await loadGroupsData() // Refresh all data
         } else {
-          // For private groups, mark request as pending
+          // For private groups, mark request as pending locally first
           const group = publicGroups.value.find(g => g.id === groupId)
           if (group) {
             group.requestPending = true
           }
+          // Then refresh all group data to get the updated state from backend
+          await loadGroupsData()
         }
         return { success: true, isPublic }
       }
@@ -422,15 +420,16 @@ export const useGroupStore = defineStore('group', () => {
     }
   }
 
-  const respondToRequest = async (requestId, action) => {
+  const respondToRequest = async (requestId, action, groupId) => {
     try {
       const response = await fetch('http://localhost:8081/responseGroupRequest', {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          notificationId: requestId, 
-          response: action === 'accept' ? 'ACCEPT' : 'DECLINE' 
+          requestId: requestId, 
+          groupId: groupId,
+          response: action === 'accept' ? 'accept' : 'decline'
         })
       })
       
