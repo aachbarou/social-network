@@ -14,7 +14,7 @@
       <span v-if="isFollowRequested">Demande envoyée</span>
     </div>
     <!-- Affichage conditionnel des infos -->
-    <div v-if="isOwnProfile || isPublic || isFollower" class="profile-infos">
+    <div v-if="isOwnProfile || isPublic || isFollower || isFollowing" class="profile-infos">
       <h1 v-if="isOwnProfile">Mon profil</h1>
       <h1 v-else>Profil utilisateur</h1>
       <div v-if="loading">
@@ -109,6 +109,7 @@ const isPublic = computed(() => user.value?.status?.toLowerCase() !== 'private')
 const isPrivate = computed(() => user.value?.status?.toLowerCase() === 'private')
 const showPrivacyConfirm = ref(false)
 const pendingPrivacy = ref(null)
+const isFollower = computed(() => !!user.value?.follower)
 // const isFollowing = computed(() => {
 //   return user.value?.id && Array.isArray(following.value)
 //     ? following.value.some(f => f.id === user.value.id)
