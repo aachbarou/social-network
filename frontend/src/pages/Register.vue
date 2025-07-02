@@ -149,7 +149,9 @@ alert(txt)
           this.$router.push('/login'); // Redirection vers la page de connexion
         } else {
           const data = await res.json();
-          this.errorMsg = data.error || "Erreur lors de l'inscription.";
+          console.log(data);
+          
+          this.errorMsg = data.message || "Erreur lors de l'inscription.";
         }
       } catch (err) {
         this.errorMsg = "Erreur réseau ou serveur.";
