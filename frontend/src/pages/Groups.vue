@@ -244,7 +244,14 @@ const handleInvitationResponse = async (invitationId, action) => {
 }
 
 const handleRequestResponse = async (requestId, action) => {
-  const success = await groupStore.respondToRequest(requestId, action)
+  // Find the request to get the groupId
+  const request = groupRequests.value.find(req => req.id === requestId)
+  if (!request || !request.group || !request.group.id) {
+    console.error('Could not find groupId for request:', requestId)
+    return
+  }
+  
+  const success = await groupStore.respondToRequest(requestId, action, request.group.id)
   if (!success) {
     console.error('Failed to respond to request')
   }

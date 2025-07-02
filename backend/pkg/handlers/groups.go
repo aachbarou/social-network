@@ -569,17 +569,17 @@ func (handler *Handler) ResponseGroupRequest(wsServer *ws.Server, w http.Respons
 	// Parse the JSON
 	err = json.Unmarshal(bodyBytes, &response)
 	if err != nil {
-		utils.RespondWithError(w, "Error on form submittion", 200)
+		utils.RespondWithError(w, "Error parsing request body", 400)
 		return
 	}
 	
 	/* ---------------------- check if all fields provided ---------------------- */
 	if response.Response != "accept" && response.Response != "decline" {
-		utils.RespondWithError(w, "Response unvalid", 200)
+		utils.RespondWithError(w, "Invalid response. Must be 'accept' or 'decline'", 400)
 		return
 	}
 	if response.GroupID == "" || response.RequestID == "" {
-		utils.RespondWithError(w, "Response incomplete", 200)
+		utils.RespondWithError(w, "Missing required fields: groupId and requestId", 400)
 		return
 	}
 	/* ------------------- chack if curren user is group admin ------------------ */
@@ -607,13 +607,13 @@ func (handler *Handler) ResponseGroupRequest(wsServer *ws.Server, w http.Respons
 		// get id of member that requests to join
 		joinerId, err := handler.repos.NotifRepo.GetUserFromRequest(response.RequestID)
 		if err != nil {
-			utils.RespondWithError(w, "Internal server error", 200)
+			utils.RespondWithError(w, "Error retrieving user from request", 500)
 			return
 		}
 		
 		// save as a new member of group
 		if err = handler.repos.GroupRepo.SaveMember(joinerId, response.GroupID); err != nil {
-			utils.RespondWithError(w, "Internal server error", 200)
+			utils.RespondWithError(w, "Error adding member to group", 500)
 			return
 		}
 		
@@ -627,11 +627,11 @@ func (handler *Handler) ResponseGroupRequest(wsServer *ws.Server, w http.Respons
 	
 	// delete from pending notification table
 	if err = handler.repos.NotifRepo.Delete(response.RequestID); err != nil {
-		utils.RespondWithError(w, "Internal server error", 200)
+		utils.RespondWithError(w, "Error removing notification", 500)
 		return
 	}
 	
-	utils.RespondWithSuccess(w, "Response was successful", 200)
+	utils.RespondWithSuccess(w, "Group request processed successfully", 200)
 }
 
 // NOT TESTED
