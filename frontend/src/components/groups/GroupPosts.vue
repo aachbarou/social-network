@@ -38,7 +38,7 @@
           <button 
             class="publish-btn" 
             @click="createPost"
-            :disabled="!newPost.content.trim() || creating"
+            :disabled="(!newPost.content.trim() && !newPost.image) || creating"
             :class="{ 'loading': creating }"
           >
             <div v-if="creating" class="loading-spinner"></div>
@@ -88,7 +88,7 @@
         
         <div class="post-content">
           <p v-if="post.content">{{ post.content }}</p>
-          <p v-else class="no-content">Contenu non disponible</p>
+          <p v-else-if="!post.image" class="no-content">Contenu non disponible</p>
           <img v-if="post.image" :src="getImageUrl(post.image)" :alt="post.content || 'Image du post'" class="post-image" />
         </div>
         
@@ -129,7 +129,6 @@
                     v-model="getCommentRef(post.id).content"
                     placeholder="Ajouter un commentaire..."
                     rows="2"
-                    required
                   ></textarea>
                   
                   <div class="comment-actions">
@@ -149,7 +148,7 @@
                     </button>
                     <button 
                       type="submit" 
-                      :disabled="!getCommentRef(post.id).content?.trim() || commentLoading[post.id]"
+                      :disabled="(!getCommentRef(post.id).content?.trim() && !getCommentRef(post.id).image) || commentLoading[post.id]"
                       class="btn-primary"
                     >
                       <Send :size="16" />
@@ -266,7 +265,7 @@ onUnmounted(() => {
 })
 
 const createPost = async () => {
-  if (!newPost.value.content.trim()) {
+  if (!newPost.value.content.trim() && !newPost.value.image) {
     return
   }
   
