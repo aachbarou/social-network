@@ -20,16 +20,6 @@
 
       </div>
       <div class="create-post-actions" v-if="showCreatePost">
-        <!-- Privacy Choice Panel -->
-        <label class="privacy-label-title" for="privacy">Confidentialité du post :</label>
-        <div class="privacy-selector">
-          <label for="privacy">Privacy:</label>
-          <select id="privacy" v-model="selectedPrivacy">
-            <option value="public">Public</option>
-            <option value="almost_private">Almost Private</option>
-            <option value="private">Private</option>
-          </select>
-        </div>
         <!-- Show followers selection only for private posts -->
         <div v-if="selectedPrivacy === 'private'" class="followers-selector">
           <label>Sélectionnez les followers autorisés :</label>
@@ -43,32 +33,27 @@
         </div>
         <!-- Info text for almost private posts -->
         <div v-if="selectedPrivacy === 'almost_private'" class="almost-private-info">
-          <p><em>Ce post sera visible par tous vos followers automatiquement.</em></p>
+          <p>
+            <Info :size="16" />
+            Ce post sera visible par tous vos followers automatiquement.
+          </p>
         </div>
-        <label class="action-btn">
-          <input type="file" ref="imageInput" @change="handleImageChange" accept="image/*" style="display: none" />
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-            <circle cx="8.5" cy="8.5" r="1.5"/>
-            <polyline points="21,15 16,10 5,21"/>
-          </svg>
-          Photo
-        </label>
-        <button class="action-btn">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-            <polygon points="23 7 16 12 23 17 23 7"/>
-            <rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
-          </svg>
-          Vidéo
-        </button>
-        <button class="action-btn">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-            <circle cx="12" cy="12" r="3"/>
-            <path d="M12 1v6m0 6v6m11-7h-6m-6 0H1"/>
-          </svg>
-          Sondage
-        </button>
-        <button class="publish-btn" @click="publishPost">Publier</button>
+        
+        <div class="action-buttons">
+          <!-- Privacy Toggle Button -->
+          <button class="privacy-toggle-btn" @click="togglePrivacy" :title="getPrivacyTooltip()">
+            <component :is="getPrivacyIconComponent()" :size="16" />
+            <span class="privacy-text">{{ getPrivacyText() }}</span>
+          </button>
+          
+          <label class="action-btn">
+            <input type="file" ref="imageInput" @change="handleImageChange" accept="image/*" style="display: none" />
+            <Image :size="18" />
+            Photo
+          </label>
+          
+          <button class="publish-btn" @click="publishPost">Publier</button>
+        </div>
       </div>
       <div v-if="showCreatePost && selectedImage" class="image-preview-container">
         <img :src="imagePreview" class="image-preview" />
@@ -88,14 +73,13 @@
               <div class="user-avatar">{{ post.userInitials }}</div>
               <div class="post-meta">
                 <h3 class="user-name">{{ post.userName }}</h3>
-                <span class="post-time">{{ post.timeAgo }}</span>
+                <div class="post-time-container">
+                  <component :is="getPostPrivacyIconComponent(post.visibility)" :size="14" class="privacy-icon-component" />
+                  <span class="post-time">{{ post.timeAgo }}</span>
+                </div>
               </div>
               <button class="post-menu-btn">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                  <circle cx="12" cy="12" r="1"/>
-                  <circle cx="19" cy="12" r="1"/>
-                  <circle cx="5" cy="12" r="1"/>
-                </svg>
+                <MoreHorizontal :size="20" />
               </button>
             </div>
             <div class="post-content">
@@ -103,35 +87,16 @@
               <div v-if="post.hasImage" class="post-image-container">
                 <img v-if="post.imagePath" :src="getImageUrl(post.imagePath)" class="post-image" alt="Post image" @error="handleImageError" />
                 <div v-else class="post-image-placeholder">
-                  <svg width="60" height="60" viewBox="0 0 24 24" fill="currentColor">
-                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                    <circle cx="8.5" cy="8.5" r="1.5"/>
-                    <polyline points="21,15 16,10 5,21"/>
-                  </svg>
+                  <Image :size="60" />
                   <span>Image</span>
                 </div>
               </div>
               <pre v-if="false">Debug post: {{ JSON.stringify(post, null, 2) }}</pre>
             </div>
             <div class="post-actions">
-              <button class="action-btn">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-                </svg>
-                {{ post.likes }}
-              </button>
               <button class="action-btn" @click="toggleComments(post.id)">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                </svg>
-                {{ post.commentsCount || 0 }}
-              </button>
-              <button class="action-btn">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-                  <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-                </svg>
-                Partager
+                <MessageCircle :size="18" />
+                {{ post.commentsCount || 0 }} Commentaire{{ (post.commentsCount || 0) > 1 ? 's' : '' }}
               </button>
             </div>
             
@@ -146,7 +111,7 @@
                         {{ comment.userName || comment.author?.nickname || 'Utilisateur' }}
                       </h4>
                       <span class="comment-time">
-                        {{ isValidDate(comment.createdAt) ? new Date(comment.createdAt).toLocaleString() : '' }}
+                        {{ isValidDate(comment.createdAt) ? formatDate(comment.createdAt) : '' }}
                       </span>
                     </div>
                   </div>
@@ -167,17 +132,10 @@
                 />
                 <label class="comment-attach-btn">
                   <input type="file" @change="handleCommentImageChange" accept="image/*" style="display: none" />
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                    <circle cx="8.5" cy="8.5" r="1.5"/>
-                    <polyline points="21,15 16,10 5,21"/>
-                  </svg>
+                  <Image :size="18" />
                 </label>
                 <button class="comment-send-btn" @click="submitComment(post.id)">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M22 2L11 13"></path>
-                    <path d="M22 2l-7 20-4-9-9-4 20-7z"></path>
-                  </svg>
+                  <Send :size="18" />
                 </button>
               </div>
               <div v-if="commentImagePreview" class="comment-image-preview-container">
@@ -198,9 +156,20 @@ import { useFollowStore } from '../stores/followStore';
 import { useUserStore } from '../stores/userStore';
 import { storeToRefs } from 'pinia';
 import { ref, computed, watch } from 'vue';
+import { Image, MoreHorizontal, MessageCircle, Send, Globe, Users, Lock, Info } from 'lucide-vue-next';
 
 export default {
   name: 'Posts',
+  components: {
+    Image,
+    MoreHorizontal,
+    MessageCircle,
+    Send,
+    Globe,
+    Users,
+    Lock,
+    Info
+  },
   setup() {
     const mainStore = useMainStore();
     const followStore = useFollowStore();
@@ -215,7 +184,7 @@ export default {
     const selectedImage = ref(null);
     const imagePreview = ref('');
     const imageInput = ref(null);
-    const selectedPrivacy = ref('PUBLIC');
+    const selectedPrivacy = ref('public');
     const selectedFollowers = ref([]);
     
     // Fetch followers when privacy changes to PRIVATE or ALMOST_PRIVATE
@@ -279,6 +248,56 @@ export default {
       return `http://localhost:8081/${cleanPath}`;
     };
     
+    const formatDate = (dateString) => {
+      // Handle completely missing date - provide a friendly fallback
+      if (!dateString || dateString === "" || dateString === null || dateString === undefined) {
+        return 'Récemment'  // More user-friendly than "Date non disponible"
+      }
+      
+      try {
+        let date;
+        
+        // Handle Unix timestamp (both string and number)
+        if (typeof dateString === 'string' && /^\d+$/.test(dateString)) {
+          const timestamp = parseInt(dateString)
+          // Try both seconds and milliseconds
+          date = timestamp > 10000000000 ? new Date(timestamp) : new Date(timestamp * 1000)
+        } else if (typeof dateString === 'number') {
+          // Check if it's Unix timestamp (seconds) or JavaScript timestamp (milliseconds)
+          date = dateString < 10000000000 ? new Date(dateString * 1000) : new Date(dateString)
+        } else if (typeof dateString === 'string') {
+          // Try parsing as ISO string
+          date = new Date(dateString)
+        } else {
+          date = new Date(dateString)
+        }
+        
+        if (isNaN(date.getTime())) {
+          return 'Récemment'  // Fallback for invalid dates
+        }
+        
+        const now = new Date()
+        const diffMs = now - date
+        const diffMins = Math.floor(diffMs / 60000)
+        const diffHours = Math.floor(diffMins / 60)
+        const diffDays = Math.floor(diffHours / 24)
+        
+        if (diffMins < 1) return 'À l\'instant'
+        if (diffMins < 60) return `Il y a ${diffMins} min`
+        if (diffHours < 24) return `Il y a ${diffHours}h`
+        if (diffDays < 7) return `Il y a ${diffDays} jour${diffDays > 1 ? 's' : ''}`
+        
+        return date.toLocaleDateString('fr-FR', {
+          day: 'numeric',
+          month: 'short',
+          hour: '2-digit',
+          minute: '2-digit'
+        })
+      } catch (error) {
+        return 'Récemment'  // Fallback for any errors
+      }
+    };
+    
     const handleImageError = (event) => {
       console.error('Image failed to load:', event.target.src);
       // Fall back to placeholder if image fails to load
@@ -290,9 +309,10 @@ export default {
             <circle cx="8.5" cy="8.5" r="1.5"/>
             <polyline points="21,15 16,10 5,21"/>
           </svg>
-          <span>Image non disponible</span>
         </div>
+        <span>Image non disponible</span>
       `;
+      event.target.parentElement.appendChild(placeholder);
     };
     
     const submitComment = async (postId) => {
@@ -305,6 +325,41 @@ export default {
       
       newCommentText.value = '';
       removeCommentImage();
+    };
+    
+    // Privacy toggle functionality
+    const togglePrivacy = () => {
+      const privacyOptions = ['public', 'almost_private', 'private'];
+      const currentIndex = privacyOptions.indexOf(selectedPrivacy.value);
+      const nextIndex = (currentIndex + 1) % privacyOptions.length;
+      selectedPrivacy.value = privacyOptions[nextIndex];
+    };
+    
+    const getPrivacyIconComponent = () => {
+      switch (selectedPrivacy.value) {
+        case 'public': return 'Globe';
+        case 'almost_private': return 'Users';
+        case 'private': return 'Lock';
+        default: return 'Globe';
+      }
+    };
+    
+    const getPrivacyText = () => {
+      switch (selectedPrivacy.value) {
+        case 'public': return 'Public';
+        case 'almost_private': return 'Presque privé';
+        case 'private': return 'Privé';
+        default: return 'Public';
+      }
+    };
+    
+    const getPrivacyTooltip = () => {
+      switch (selectedPrivacy.value) {
+        case 'public': return 'Cliquez pour changer en Presque privé';
+        case 'almost_private': return 'Cliquez pour changer en Privé';
+        case 'private': return 'Cliquez pour changer en Public';
+        default: return 'Cliquez pour changer la confidentialité';
+      }
     };
     
     const publishPost = async () => {
@@ -359,7 +414,7 @@ export default {
             id: post.id,
             userName: post.author?.nickname || 'Utilisateur',
             userInitials: post.author?.nickname ? post.author.nickname.slice(0,2).toUpperCase() : '??',
-            timeAgo: post.createdAt ? new Date(post.createdAt).toLocaleString() : '',
+            timeAgo: post.createdAt ? formatDate(post.createdAt) : '',
             content: post.content,
             hasImage: !!imagePath,
             imagePath: imagePath,
@@ -389,6 +444,15 @@ export default {
       return !isNaN(new Date(date).getTime());
     }
     
+    const getPostPrivacyIconComponent = (visibility) => {
+      switch (visibility) {
+        case 'PUBLIC': return 'Globe';
+        case 'ALMOST_PRIVATE': return 'Users';
+        case 'PRIVATE': return 'Lock';
+        default: return 'Globe';
+      }
+    };
+    
     return {
       posts,
       mainStore,
@@ -410,13 +474,19 @@ export default {
       handleCommentImageChange,
       removeCommentImage,
       getImageUrl,
+      formatDate,
       handleImageError,
       getPrivacyLabel,
+      getPostPrivacyIconComponent,
       getCommentImage,
       isValidDate,
       selectedPrivacy,
       followers,
       selectedFollowers,
+      togglePrivacy,
+      getPrivacyIconComponent,
+      getPrivacyText,
+      getPrivacyTooltip,
     };
   },
   data() {
@@ -512,23 +582,47 @@ export default {
 
 .create-post-actions {
   display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: 15px;
-  flex-wrap: wrap;
 }
 
-.privacy-choice-panel {
+.action-buttons {
   display: flex;
-  gap: 1rem;
-  margin-bottom: 0.5rem;
-  color: #fff;
-  font-size: 0.95rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
 }
 
-.privacy-selector {
-  margin-bottom: 0.5rem;
-  color: #fff;
-  font-size: 0.95rem;
+.privacy-toggle-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: 500;
+}
+
+.privacy-toggle-btn:hover {
+  background: rgba(232, 121, 198, 0.1);
+  border-color: rgba(232, 121, 198, 0.3);
+  color: #e879c6;
+  transform: translateY(-1px);
+}
+
+.privacy-icon {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.privacy-text {
+  font-size: 0.85rem;
+  font-weight: 500;
 }
 
 .action-btn {
@@ -606,6 +700,23 @@ export default {
   font-size: 0.95rem;
   font-weight: 600;
   margin: 0 0 2px 0;
+}
+
+.post-time-container {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.post-time-container {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.privacy-icon-component {
+  opacity: 1;
+  color: rgba(255, 255, 255, 0.8);
 }
 
 .post-time {
@@ -834,46 +945,63 @@ export default {
 }
 
 .followers-selector {
-  margin: 10px 0 20px 0;
-  background: rgba(255,255,255,0.03);
-  border-radius: 8px;
-  padding: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.followers-selector label {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.9rem;
+  font-weight: 500;
+  margin-bottom: 12px;
+  display: block;
 }
 
 .almost-private-info {
-  margin: 10px 0 20px 0;
   background: rgba(52, 152, 219, 0.1);
   border: 1px solid rgba(52, 152, 219, 0.3);
-  border-radius: 8px;
-  padding: 10px;
+  border-radius: 12px;
+  padding: 16px;
 }
 
 .almost-private-info p {
   margin: 0;
-  color: #3498db;
+  color: #5dade2;
   font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
+
 .followers-list {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 8px;
 }
+
 .follower-checkbox {
   display: flex;
   align-items: center;
-  gap: 6px;
-  background: rgba(255,255,255,0.07);
-  border-radius: 6px;
-  padding: 4px 8px;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.8);
 }
 
-.privacy-label-title {
-  font-weight: bold;
-  color: #fff;
-  font-size: 1rem;
-  margin-bottom: 6px;
-  margin-top: 10px;
-  display: block;
+.follower-checkbox:hover {
+  background: rgba(232, 121, 198, 0.1);
+  border-color: rgba(232, 121, 198, 0.3);
+}
+
+.follower-checkbox input[type="checkbox"] {
+  accent-color: #e879c6;
 }
 
 /* Mobile Responsive */
@@ -882,14 +1010,20 @@ export default {
     padding: 0 15px;
   }
   
-  .create-post-actions {
-    flex-direction: column;
-    align-items: stretch;
+  .action-buttons {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  
+  .privacy-toggle-btn {
+    order: -1;
+    width: 100%;
+    justify-content: center;
   }
   
   .publish-btn {
-    margin-left: 0;
-    align-self: flex-end;
+    width: 100%;
+    justify-content: center;
   }
   
   .page-header h1 {
