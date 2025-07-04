@@ -6,6 +6,7 @@ type Notification struct {
 	Type     string `json:"type"`
 	Content  string `json:"content"`
 	Sender   string `json:"sender"`
+	Read     bool   `json:"read"`
 
 	//additional info for notification
 	User  User  `json:"user"`
@@ -36,4 +37,8 @@ type NotifRepository interface {
 	// get content form chat_request notification
 	GetContentFromChatRequest(senderId, receiverId string)(string, error)
 	CheckIfChatRequestExists(senderId, receiverId string)(bool, error) // true if exists, false otherwise
+	// mark notification as read
+	MarkAsRead(notificationId string) error
+	// mark all notifications for a user as read
+	MarkAllAsRead(userId string) error
 }

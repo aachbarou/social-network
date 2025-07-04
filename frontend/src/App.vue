@@ -5,8 +5,30 @@
 </template>
 
 <script>
+import { onMounted } from 'vue'
+import { useUserStore } from './stores/userStore'
+
 export default {
-  name: 'App'
+  name: 'App',
+  setup() {
+    const userStore = useUserStore()
+    
+    onMounted(async () => {
+      console.log('🚀 App mounted, initializing user authentication...')
+      // Check if user is already authenticated when app loads
+      try {
+        await userStore.reloadUserAfterRefresh()
+        console.log('✅ User authentication initialized:', {
+          isLoggedIn: userStore.isLoggedIn,
+          user: userStore.user
+        })
+      } catch (error) {
+        console.error('❌ Error initializing user authentication:', error)
+      }
+    })
+    
+    return {}
+  }
 }
 </script>
 

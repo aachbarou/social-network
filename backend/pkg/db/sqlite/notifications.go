@@ -120,13 +120,13 @@ func (repo *NotifRepository) GetGroupId(notificationId string) (string, error) {
 
 func (repo *NotifRepository) GetAll(userId string) ([]models.Notification, error) {
 	var notifications = []models.Notification{}
-	rows, err := repo.DB.Query("SELECT content, notif_id, type, sender, user_id FROM notifications WHERE user_id = ? OR (SELECT administrator FROM groups WHERE group_id = notifications.user_id) = ?;", userId, userId)
+	rows, err := repo.DB.Query("SELECT content, notif_id, type, sender, user_id, COALESCE(read, FALSE) as read FROM notifications WHERE user_id = ? OR (SELECT administrator FROM groups WHERE group_id = notifications.user_id) = ? ORDER BY notif_id DESC;", userId, userId)
 	if err != nil {
 		return notifications, err
 	}
 	for rows.Next() {
 		var notif models.Notification
-		rows.Scan(&notif.Content, &notif.ID, &notif.Type, &notif.Sender, &notif.TargetID)
+		rows.Scan(&notif.Content, &notif.ID, &notif.Type, &notif.Sender, &notif.TargetID, &notif.Read)
 		notifications = append(notifications, notif)
 	}
 	return notifications, nil
@@ -161,4 +161,16 @@ func (repo *NotifRepository)GetContentFromChatRequest(senderId, receiverId strin
 		return resp, err
 	}
 	return resp, nil
+}
+
+// MarkAsRead marks a specific notification as read
+func (repo *NotifRepository) MarkAsRead(notificationId string) error {
+	_, err := repo.DB.Exec("UPDATE notifications SET read = TRUE WHERE notif_id = ?", notificationId)
+	return err
+}
+
+// MarkAllAsRead marks all notifications for a user as read
+func (repo *NotifRepository) MarkAllAsRead(userId string) error {
+	_, err := repo.DB.Exec("UPDATE notifications SET read = TRUE WHERE user_id = ?", userId)
+	return err
 }

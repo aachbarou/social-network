@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"net/http"
 	"social-network/pkg/utils"
 )
@@ -35,4 +36,57 @@ func (handler *Handler) Notifications(w http.ResponseWriter, r *http.Request) {
 		utils.DefineNotificationMsg(&notifs[i])
 	}
 	utils.RespondWithNotifications(w, notifs, 200)
+}
+
+// MarkNotificationAsRead marks a specific notification as read
+func (handler *Handler) MarkNotificationAsRead(w http.ResponseWriter, r *http.Request) {
+	w = utils.ConfigHeader(w)
+	
+	if r.Method != http.MethodPost {
+		utils.RespondWithError(w, "Method not allowed", 405)
+		return
+	}
+
+	var request struct {
+		NotificationID string `json:"notificationId"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		utils.RespondWithError(w, "Invalid request body", 400)
+		return
+	}
+
+	if request.NotificationID == "" {
+		utils.RespondWithError(w, "Notification ID is required", 400)
+		return
+	}
+
+	err := handler.repos.NotifRepo.MarkAsRead(request.NotificationID)
+	if err != nil {
+		utils.RespondWithError(w, "Error marking notification as read", 500)
+		return
+	}
+
+	utils.RespondWithSuccess(w, "Notification marked as read", 200)
+}
+
+// MarkAllNotificationsAsRead marks all notifications for the current user as read
+func (handler *Handler) MarkAllNotificationsAsRead(w http.ResponseWriter, r *http.Request) {
+	w = utils.ConfigHeader(w)
+	
+	if r.Method != http.MethodPost {
+		utils.RespondWithError(w, "Method not allowed", 405)
+		return
+	}
+
+	// Get user ID from context
+	userId := r.Context().Value(utils.UserKey).(string)
+
+	err := handler.repos.NotifRepo.MarkAllAsRead(userId)
+	if err != nil {
+		utils.RespondWithError(w, "Error marking notifications as read", 500)
+		return
+	}
+
+	utils.RespondWithSuccess(w, "All notifications marked as read", 200)
 }
