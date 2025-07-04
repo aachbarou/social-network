@@ -38,6 +38,8 @@ export const useFollowStore = defineStore('follow', () => {
       followRequests.value = (res.ok && data.notifications)
         ? data.notifications.filter(n => n.type === 'FOLLOW')
         : []
+
+        
     } catch (e) {
       followRequests.value = []
     }
@@ -71,7 +73,16 @@ export const useFollowStore = defineStore('follow', () => {
 
   // Demander à suivre (pour profil privé)
   async function requestFollow(userId) {
-    return follow(userId)
+    const result = await follow(userId)
+    // Si la demande a été envoyée avec succès, on ajoute une demande en attente localement
+    if (!isFollowRequested(userId)) {
+      followRequests.value.push({
+        type: 'FOLLOW',
+        content: userId,
+        // Ajoute d'autres champs si besoin (id, sender, etc.)
+      })
+    }
+    return result
   }
 
   // Accepter ou refuser une demande de suivi (pour profils privés)
@@ -101,7 +112,12 @@ export const useFollowStore = defineStore('follow', () => {
 
   // Vérifie si une demande de suivi est en attente
   function isFollowRequested(userId) {
-    return followRequests.value.some(r => r.targetId === userId)
+    // Cherche une notification de type FOLLOW pour cet utilisateur
+    return followRequests.value.some(req => {
+      // Selon la structure, req.content ou req.sender ou req.targetId peut contenir l'id
+      // On vérifie les deux cas courants
+      return (req.content === userId || req.sender === userId || req.userId === userId)
+    })
   }
 
   return {
