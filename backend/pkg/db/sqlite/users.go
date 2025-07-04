@@ -135,6 +135,18 @@ func (repo *UserRepository) GetProfileMin(userID string) (models.User, error) {
 		return user, err
 	}
 	user.ID = userID
+
+	// Compte les followers
+	row = repo.DB.QueryRow("SELECT COUNT(*) FROM followers WHERE user_id = ?", userID)
+	if err := row.Scan(&user.FollowersCount); err != nil {
+		user.FollowersCount = 0
+	}
+	// Compte les abonnements
+	row = repo.DB.QueryRow("SELECT COUNT(*) FROM followers WHERE follower_id = ?", userID)
+	if err := row.Scan(&user.FollowingCount); err != nil {
+		user.FollowingCount = 0
+	}
+
 	return user, nil
 }
 

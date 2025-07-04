@@ -65,6 +65,10 @@
     <div v-else>
       <div class="profile-info">
         <h2>{{ user?.nickname || (user?.firstName + ' ' + user?.lastName) || 'Profil utilisateur' }}</h2>
+        <div class="profile-followers">
+          <h3>Followers : {{ user?.followersCount ?? 0 }}</h3>
+          <h3>Abonnements : {{ user?.followingCount ?? 0 }}</h3>
+        </div>
       </div>
       <div class="profile-private-msg">Ce profil est privé.</div>
     </div>

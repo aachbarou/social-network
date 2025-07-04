@@ -17,6 +17,9 @@ type User struct {
 	Follower             bool `json:"follower"`       // if this user is following another user
 	Following            bool `json:"following"`      // if curr user is following this one
 	FollowRequestPending bool `json:"requestPending"` // true if requested to follow
+
+	FollowersCount int `json:"followersCount"`   // number of followers
+	FollowingCount int `json:"followingCount"`   // number of following
 }
 
 // Repository represent all possible actions availible to deal with User
