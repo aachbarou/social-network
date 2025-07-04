@@ -121,7 +121,7 @@ const isFollower = computed(() => !!user.value?.follower)
 // })
 const isFollowing = computed(() => !!user.value?.following)
 console.log(isFollowing.value, 'isFollowing')
-const isFollowRequested = computed(() => user.value?.id ? followStore.isFollowRequested(user.value.id) : false)
+const isFollowRequested = computed(() => !!user.value?.requestPending)
 
 function getFullImageUrl(path) {
   if (!path) return ''
@@ -194,6 +194,8 @@ async function loadProfile() {
       await followStore.fetchFollowing(userStore.user.id)
       console.log('following (utilisateur courant):', following.value)
     }
+    // Ajout : recharge les demandes de follow pour afficher "Demande envoyée" même après refresh
+    await followStore.fetchFollowRequests()
   } else {
     // Mon propre profil
     await userStore.reloadUserAfterRefresh()
