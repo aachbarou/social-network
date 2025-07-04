@@ -153,7 +153,7 @@
                   </div>
                 </div>
                 
-                <!-- Event Notifications (automatically marked as read when viewed) -->
+                <!-- Event Notifications (auto-disappear after viewing like Instagram/Facebook) -->
                 <div v-else-if="notif.type === 'EVENT'" 
                      class="notification-item event-notification"
                      @click="notificationStore.markAsReadOnView(notif.id)">
@@ -193,52 +193,6 @@
         </button>
       </div>
     </nav>
-
-    <!-- Debug Panel for Notifications (Development only) -->
-    <div v-if="true" class="debug-panel">
-      <details>
-        <summary>🐛 Notification Debug Info</summary>
-        <div class="debug-content">
-          <div class="debug-row">
-            <strong>User Logged In:</strong> {{ debugInfo.userLoggedIn }}
-          </div>
-          <div class="debug-row">
-            <strong>WebSocket:</strong> 
-            <span :class="debugInfo.wsConnected ? 'status-connected' : 'status-disconnected'">
-              {{ debugInfo.wsConnected ? 'Connected' : 'Disconnected' }}
-            </span>
-          </div>
-          <div class="debug-row">
-            <strong>Total Notifications:</strong> {{ debugInfo.totalNotifications }}
-          </div>
-          <div class="debug-row">
-            <strong>Unread Count:</strong> {{ debugInfo.unreadCount }}
-          </div>
-          <div class="debug-row">
-            <strong>Has New:</strong> {{ debugInfo.hasNewNotifications }}
-          </div>
-          <div class="debug-row">
-            <strong>Has Any:</strong> {{ debugInfo.hasAnyNotifications }}
-          </div>
-          <div class="debug-row">
-            <strong>Follow Requests:</strong> {{ debugInfo.followRequests }}
-          </div>
-          <div class="debug-row">
-            <strong>Group Invites:</strong> {{ debugInfo.groupInvites }}
-          </div>
-          <div class="debug-row">
-            <strong>Group Requests:</strong> {{ debugInfo.groupRequests }}
-          </div>
-          <div class="debug-row">
-            <strong>Event Notifications:</strong> {{ debugInfo.eventNotifications }}
-          </div>
-          <button @click="testNotification" class="test-btn">🧪 Add Test Notification</button>
-          <button @click="testWebSocketConnection" class="test-btn">🔌 Test WebSocket Connection</button>
-          <button @click="forceWebSocketReconnect" class="test-btn">🔄 Force Reconnect</button>
-          <button @click="simulateWebSocketMessage" class="test-btn">📡 Simulate WebSocket Message</button>
-        </div>
-      </details>
-    </div>
 
     <!-- Sidebar -->
     <aside class="sidebar">
@@ -372,34 +326,24 @@ export default {
              notificationStore.eventNotifications.length > 0
     })
 
-    // Debug info for notification system
-    const debugInfo = computed(() => ({
-      totalNotifications: notificationStore.notifications.length,
-      unreadCount: notificationStore.unreadCount,
-      hasNewNotifications: notificationStore.hasNewNotifications,
-      hasAnyNotifications: hasAnyNotifications.value,
-      followRequests: notificationStore.followRequests.length,
-      groupInvites: notificationStore.groupInvites.length,
-      groupRequests: notificationStore.groupRequests.length,
-      eventNotifications: notificationStore.eventNotifications.length,
-      wsConnected: wsService.getConnectionStatus().value,
-      userLoggedIn: userStore.isLoggedIn
-    }))
-
     // Methods
     async function navigateTo(path) {
       if (path === '/notifications') {
         showNotificationDropdown.value = !showNotificationDropdown.value
         if (showNotificationDropdown.value) {
           // Fetch fresh notifications when opening dropdown
-          console.log('📂 Opening notification dropdown, fetching fresh notifications...')
           await notificationStore.fetchNotifications()
           
-          // Auto-mark event notifications as read when they're viewed in dropdown
-          // This simulates the behavior of modern social networks where viewing = read
+          // Auto-mark event notifications as read when dropdown is opened (Instagram/Facebook style)
+          // This makes them disappear from dropdown but remain on notifications page
           setTimeout(async () => {
-            await notificationStore.markDropdownNotificationsAsRead()
-          }, 1000) // Small delay to allow user to see the notifications first
+            const unreadEvents = notificationStore.unreadEventNotifications
+            if (unreadEvents.length > 0) {
+              for (const notif of unreadEvents) {
+                await notificationStore.markAsRead(notif.id)
+              }
+            }
+          }, 3000) // 3 second delay to let user see them
         }
       } else {
         router.push(path)
@@ -482,138 +426,27 @@ export default {
       searchQuery.value = '';
     }
 
-    async function testNotification() {
-      // Create a test notification
-      const testNotif = {
-        id: Date.now(),
-        type: 'FOLLOW',
-        message: 'Test notification',
-        user: {
-          id: 999,
-          firstName: 'Test',
-          lastName: 'User',
-          nickname: 'testuser'
-        },
-        read: false,
-        createdAt: new Date().toISOString()
-      }
-      
-      console.log('🧪 Creating test notification:', testNotif)
-      await notificationStore.handleNewNotification(testNotif)
-    }
-
-    function testWebSocketConnection() {
-      console.log('🔌 Testing WebSocket connection...')
-      const wsStatus = wsService.isConnected()
-      console.log('WebSocket status:', {
-        isConnected: wsStatus,
-        readyState: wsStatus ? 'OPEN' : 'CLOSED'
-      })
-      
-      if (wsStatus) {
-        console.log('✅ WebSocket is connected and ready')
-        // Don't send test messages, just confirm connection
-      } else {
-        console.log('❌ WebSocket is not connected')
-      }
-    }
-
-    function forceWebSocketReconnect() {
-      console.log('🔄 Forcing WebSocket reconnection...')
-      wsService.disconnect()
-      setTimeout(() => {
-        wsService.connect()
-      }, 1000)
-    }
-
-    function simulateWebSocketMessage() {
-      console.log('📡 Simulating WebSocket notification message...')
-      
-      // Create a mock WebSocket message that matches backend format
-      const mockMessage = {
-        action: 'notification',
-        notification: {
-          id: Date.now(),
-          type: 'FOLLOW',
-          sender: '123',
-          target: userStore.user?.id,
-          content: '123',
-          createdAt: new Date().toISOString(),
-          read: false,
-          user: {
-            id: '123',
-            firstName: 'Test',
-            lastName: 'User',
-            nickname: 'testuser'
-          }
-        }
-      }
-      
-      // Simulate receiving the message through WebSocket service
-      if (removeWebSocketListener) {
-        console.log('🎯 Triggering WebSocket message handler...')
-        // Find the mainLayout listener and call it directly
-        const listeners = wsService.getListeners()
-        listeners.forEach((callback, key) => {
-          if (key === 'mainLayout') {
-            callback(mockMessage)
-          }
-        })
-      }
-    }
-
     // Setup WebSocket for real-time notifications
-    // WebSocket handler
     onMounted(async () => {
-      console.log('🎯 MainLayout mounted, checking user auth status...')
-      
-      // First, check if user is authenticated by calling the backend
+      // Check if user is authenticated
       try {
-        console.log('🔍 Checking user session...')
         await userStore.reloadUserAfterRefresh()
         
-        console.log('✅ User auth check complete:', {
-          isLoggedIn: userStore.isLoggedIn,
-          isAuthenticated: userStore.isAuthenticated,
-          user: userStore.user
-        })
-        
         if (userStore.isLoggedIn) {
-          console.log('✅ User is logged in, setting up notifications and WebSocket')
           await notificationStore.fetchNotifications()
           
-          // Give a small delay to ensure the session is established
+          // Setup WebSocket listener
           setTimeout(() => {
-            console.log('🔌 Setting up WebSocket listener...')
             removeWebSocketListener = wsService.addListener('mainLayout', async (data) => {
-              console.log('🔔 MainLayout received WebSocket message:', data)
               // Handle notification messages
               if (data.action === 'notification') {
-                console.log('📬 New notification received, updating store...')
                 await notificationStore.handleNewNotification(data.notification)
-                
-                // Force reactivity update by accessing the computed properties
-                // This ensures the template re-renders
-                console.log('📊 Updated notification counts:', {
-                  total: notificationStore.notifications.length,
-                  unread: notificationStore.unreadCount,
-                  hasNew: notificationStore.hasNewNotifications,
-                  followRequests: notificationStore.followRequests.length,
-                  groupInvites: notificationStore.groupInvites.length,
-                  groupRequests: notificationStore.groupRequests.length,
-                  eventNotifications: notificationStore.eventNotifications.length
-                })
-                
-                // Force template update by accessing hasAnyNotifications
-                console.log('📋 Has any notifications:', hasAnyNotifications.value)
               }
             })
-          }, 1000) // 1 second delay to ensure session is ready
-        } else {
-          console.log('❌ User not logged in, skipping WebSocket setup')
+          }, 1000)
         }
       } catch (error) {
-        console.error('❌ Error checking user authentication:', error)
+        console.error('Error checking user authentication:', error)
       }
     })
 
@@ -638,16 +471,11 @@ export default {
       userStore,
       notificationStore,
       hasAnyNotifications,
-      debugInfo,
       navigateTo,
       logout,
       searchProfiles,
       onSearchInput,
       goToProfile,
-      testNotification,
-      testWebSocketConnection,
-      forceWebSocketReconnect,
-      simulateWebSocketMessage,
       isLoggedIn,
       currentUser
     }
@@ -1281,66 +1109,5 @@ export default {
 
 .notification-item:hover {
   background: rgba(255, 255, 255, 0.02);
-}
-
-/* Debug Panel Styles */
-.debug-panel {
-  position: fixed;
-  top: 60px;
-  right: 10px;
-  background: rgba(15, 15, 23, 0.95);
-  border: 1px solid rgba(120, 219, 255, 0.3);
-  border-radius: 8px;
-  padding: 0.5rem;
-  z-index: 9999;
-  font-size: 12px;
-  max-width: 300px;
-}
-
-.debug-panel summary {
-  cursor: pointer;
-  color: #78dbff;
-  font-weight: bold;
-  padding: 0.25rem;
-}
-
-.debug-content {
-  margin-top: 0.5rem;
-  padding: 0.5rem 0;
-}
-
-.debug-row {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 0.25rem;
-  color: #d1d5db;
-}
-
-.debug-row strong {
-  color: #78dbff;
-}
-
-.status-connected {
-  color: #10b981;
-}
-
-.status-disconnected {
-  color: #ef4444;
-}
-
-.test-btn {
-  background: linear-gradient(90deg, #e879c6 0%, #78c7ff 100%);
-  color: white;
-  border: none;
-  border-radius: 4px;
-  padding: 0.25rem 0.5rem;
-  font-size: 11px;
-  cursor: pointer;
-  margin-top: 0.5rem;
-  width: 100%;
-}
-
-.test-btn:hover {
-  opacity: 0.9;
 }
 </style>

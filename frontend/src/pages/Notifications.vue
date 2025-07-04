@@ -4,20 +4,6 @@
       <h1>Notifications</h1>
       <div class="header-actions">
         <button 
-          @click="showDebugPanel = !showDebugPanel" 
-          class="debug-panel-toggle"
-          :class="{ active: showDebugPanel }"
-        >
-          {{ showDebugPanel ? '🔧 Hide Debug' : '🐛 Debug' }}
-        </button>
-        <button 
-          @click="showTestPanel = !showTestPanel" 
-          class="test-panel-toggle"
-          :class="{ active: showTestPanel }"
-        >
-          {{ showTestPanel ? '🔧 Hide Test Panel' : '🧪 Show Test Panel' }}
-        </button>
-        <button 
           v-if="notificationStore.unreadCount > 0" 
           @click="notificationStore.markAllAsRead()" 
           class="mark-all-read-btn"
@@ -26,12 +12,6 @@
         </button>
       </div>
     </div>
-
-    <!-- Debug Panel (Development) -->
-    <DebugPanel v-if="showDebugPanel" />
-
-    <!-- Test Panel (Development/Testing) -->
-    <NotificationTestPanel v-if="showTestPanel" />
 
     <!-- Error Display -->
     <div v-if="notificationStore.error" class="error-banner">
@@ -210,18 +190,14 @@
 </template>
 
 <script setup>
-import { onMounted, onUnmounted, ref } from 'vue'
+import { onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useNotificationStore } from '../stores/notificationStore'
 import { UserGroupIcon, CalendarIcon, CalendarDaysIcon } from '@heroicons/vue/24/outline'
 import wsService from '../services/websocketService'
-import NotificationTestPanel from '../components/NotificationTestPanel.vue'
-import DebugPanel from '../components/DebugPanel.vue'
 
 const router = useRouter()
 const notificationStore = useNotificationStore()
-const showTestPanel = ref(false)
-const showDebugPanel = ref(true) // Show debug panel by default for now
 let removeWebSocketListener = null
 
 function goToEvent(eventId, groupId) {
@@ -233,12 +209,10 @@ function goToEvent(eventId, groupId) {
 }
 
 onMounted(() => {
-  console.log('🎯 Notifications page mounted')
   notificationStore.fetchNotifications()
   
   // Setup WebSocket listener for notifications
   removeWebSocketListener = wsService.addListener('notificationsPage', (data) => {
-    console.log('📡 WebSocket message received:', data)
     // If we receive a notification, refresh the list
     if (data.action === 'notification') {
       notificationStore.fetchNotifications()
@@ -292,50 +266,6 @@ onUnmounted(() => {
 .mark-all-read-btn:hover {
   background: #282846;
   border-color: rgba(120, 219, 255, 0.5);
-}
-
-.test-panel-toggle {
-  background: #23233a;
-  color: #e879c6;
-  border: 1px solid rgba(232, 121, 198, 0.3);
-  border-radius: 8px;
-  padding: 0.5rem 1rem;
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.test-panel-toggle:hover {
-  background: #282846;
-  border-color: rgba(232, 121, 198, 0.5);
-}
-
-.test-panel-toggle.active {
-  background: linear-gradient(90deg, #e879c6 0%, #78c7ff 100%);
-  color: white;
-  border-color: transparent;
-}
-
-.debug-panel-toggle {
-  background: #23233a;
-  color: #ef4444;
-  border: 1px solid rgba(239, 68, 68, 0.3);
-  border-radius: 8px;
-  padding: 0.5rem 1rem;
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.debug-panel-toggle:hover {
-  background: #282846;
-  border-color: rgba(239, 68, 68, 0.5);
-}
-
-.debug-panel-toggle.active {
-  background: linear-gradient(90deg, #ef4444 0%, #f97316 100%);
-  color: white;
-  border-color: transparent;
 }
 
 .error-banner {

@@ -29,29 +29,32 @@ export const useNotificationStore = defineStore('notification', () => {
     return notifications.value.filter(n => n.type === 'GROUP_REQUEST')
   })
   
-  // For informational notifications (events), only show unread ones in dropdowns
+  // For informational notifications (events), show all recent ones
   const eventNotifications = computed(() => {
     return notifications.value.filter(n => n.type === 'EVENT')
   })
   
-  // Unread notifications for dropdown display (exclude actionable ones that are already handled)
+  // ONLY UNREAD event notifications for dropdown (Instagram/Facebook style)
   const unreadEventNotifications = computed(() => {
-    return notifications.value.filter(n => n.type === 'EVENT' && !n.read)
+    return notifications.value
+      .filter(n => n.type === 'EVENT' && !n.read)
+      .sort((a, b) => new Date(b.createdAt || b.timestamp) - new Date(a.createdAt || a.timestamp))
+      .slice(0, 3)
   })
   
-  // All unread notifications for dropdown preview (limited)
+  // All notifications for dropdown preview (limited) - show actionable + UNREAD events only
   const recentUnreadNotifications = computed(() => {
-    const unreadEvents = unreadEventNotifications.value.slice(0, 3)
     const pendingFollowRequests = followRequests.value.slice(0, 2)
     const pendingGroupInvites = groupInvites.value.slice(0, 2)
     const pendingGroupRequests = groupRequests.value.slice(0, 2)
+    const unreadEvents = unreadEventNotifications.value // Only unread events!
     
     return [
       ...pendingFollowRequests,
       ...pendingGroupInvites, 
       ...pendingGroupRequests,
       ...unreadEvents
-    ].slice(0, 5) // Max 5 notifications in dropdown
+    ].slice(0, 6) // Max 6 notifications in dropdown
   })
   
   // Actions
@@ -59,20 +62,10 @@ export const useNotificationStore = defineStore('notification', () => {
     loading.value = true
     error.value = null
     try {
-      console.log('🔄 Fetching notifications from API...')
       const res = await fetch('http://localhost:8081/notifications', { credentials: 'include' })
       const data = await res.json()
-      console.log('📬 Raw notifications response:', data)
       
       notifications.value = data.notifications || []
-      console.log('📊 Processed notifications:', {
-        total: notifications.value.length,
-        followRequests: notifications.value.filter(n => n.type === 'FOLLOW').length,
-        groupInvites: notifications.value.filter(n => n.type === 'GROUP_INVITE').length,
-        groupRequests: notifications.value.filter(n => n.type === 'GROUP_REQUEST').length,
-        eventNotifications: notifications.value.filter(n => n.type === 'EVENT').length
-      })
-      
       hasNewNotifications.value = false
       
       // Also update notifications in other stores
@@ -157,8 +150,6 @@ export const useNotificationStore = defineStore('notification', () => {
   }
   
   async function handleNewNotification(notification) {
-    console.log('🔔 Handling new notification:', notification)
-    
     // Add notification to the list if it's not already there
     const exists = notifications.value.some(n => n.id === notification.id)
     if (!exists) {
@@ -175,31 +166,13 @@ export const useNotificationStore = defineStore('notification', () => {
       // Set the flag for new notifications
       hasNewNotifications.value = true
       
-      console.log('✅ Notification added to store:', {
-        id: notification.id,
-        type: notification.type,
-        total: notifications.value.length,
-        unread: notifications.value.filter(n => !n.read).length,
-        unreadCount: unreadCount.value
-      })
-      
       // Force Vue to update the DOM on the next tick
       await nextTick()
-      
-      // Force reactivity by logging the computed values
-      console.log('📊 Current reactive values:', {
-        unreadCount: unreadCount.value,
-        hasNewNotifications: hasNewNotifications.value,
-        totalNotifications: notifications.value.length
-      })
-    } else {
-      console.log('⚠️ Notification already exists, skipping:', notification.id)
     }
   }
   
   async function markAllAsRead() {
     try {
-      console.log('📝 Marking all notifications as read...')
       const response = await fetch('http://localhost:8081/notifications/markAllAsRead', {
         method: 'POST',
         credentials: 'include',
@@ -212,20 +185,18 @@ export const useNotificationStore = defineStore('notification', () => {
         // Update local state
         notifications.value = notifications.value.map(n => ({...n, read: true}))
         hasNewNotifications.value = false
-        console.log('✅ All notifications marked as read')
       } else {
-        console.error('❌ Failed to mark notifications as read:', response.status)
+        console.error('Failed to mark notifications as read:', response.status)
         error.value = 'Erreur lors du marquage des notifications'
       }
     } catch (e) {
-      console.error('❌ Error marking notifications as read:', e)
+      console.error('Error marking notifications as read:', e)
       error.value = 'Erreur réseau'
     }
   }
 
   async function markAsRead(notificationId) {
     try {
-      console.log('📝 Marking notification as read:', notificationId)
       const response = await fetch('http://localhost:8081/notifications/markAsRead', {
         method: 'POST',
         credentials: 'include',
@@ -241,13 +212,12 @@ export const useNotificationStore = defineStore('notification', () => {
         if (notification) {
           notification.read = true
         }
-        console.log('✅ Notification marked as read')
       } else {
-        console.error('❌ Failed to mark notification as read:', response.status)
+        console.error('Failed to mark notification as read:', response.status)
         error.value = 'Erreur lors du marquage de la notification'
       }
     } catch (e) {
-      console.error('❌ Error marking notification as read:', e)
+      console.error('Error marking notification as read:', e)
       error.value = 'Erreur réseau'
     }
   }
@@ -257,19 +227,6 @@ export const useNotificationStore = defineStore('notification', () => {
     const notification = notifications.value.find(n => n.id === notificationId)
     if (notification && !notification.read && notification.type === 'EVENT') {
       await markAsRead(notificationId)
-    }
-  }
-
-  // Mark multiple notifications as read when they're viewed in dropdown
-  async function markDropdownNotificationsAsRead() {
-    const unreadEventNotifs = unreadEventNotifications.value
-    if (unreadEventNotifs.length > 0) {
-      console.log('👁️ Marking viewed event notifications as read...')
-      for (const notif of unreadEventNotifs.slice(0, 3)) { // Only mark the ones shown in dropdown
-        if (!notif.read) {
-          await markAsRead(notif.id)
-        }
-      }
     }
   }
 
@@ -320,7 +277,6 @@ export const useNotificationStore = defineStore('notification', () => {
     markAllAsRead,
     markAsRead,
     markAsReadOnView,
-    markDropdownNotificationsAsRead,
     dismissError,
     isProcessing,
     formatNotificationTime
