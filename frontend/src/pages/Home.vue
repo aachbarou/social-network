@@ -366,7 +366,7 @@ export default {
       if (!newPostContent.value && !selectedImage.value) return;
       const formData = new FormData();
       formData.set('body', newPostContent.value);
-      formData.set('privacy', selectedPrivacy.value.toUpperCase().replace('-', '_'));
+      formData.set('privacy', selectedPrivacy.value.toUpperCase().replace('_', '_'));
       // Only send selected followers for private posts, not for almost_private
       if (selectedPrivacy.value === 'private') {
         formData.set('checkedfollowers', selectedFollowers.value.join(','));
@@ -393,6 +393,8 @@ export default {
         newPostContent.value = '';
         removeImage();
         showCreatePost.value = false;
+                selectedPrivacy.value = 'public';
+        selectedFollowers.value = [];
         await mainStore.fetchPosts();
       } catch (error) {
         console.error("Post creation failed:", error);

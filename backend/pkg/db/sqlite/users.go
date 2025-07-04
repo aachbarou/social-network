@@ -193,24 +193,73 @@ func (repo *UserRepository) SetStatus(user models.User) error {
 
 // save new follower
 func (repo *UserRepository) SaveFollower(userId, followerId string) error {
-	stmt, err := repo.DB.Prepare("INSERT INTO followers(user_id, follower_id) VALUES (?,?)")
+	// Start a transaction to ensure all operations succeed or fail together
+	tx, err := repo.DB.Begin()
 	if err != nil {
 		return err
 	}
-	_, err = stmt.Exec(userId, followerId)
+	defer tx.Rollback()
+
+	// Add to followers table
+	_, err = tx.Exec("INSERT INTO followers(user_id, follower_id) VALUES (?,?)", userId, followerId)
 	if err != nil {
 		return err
 	}
-	return nil
+
+	// Grant access to all existing almost_private posts created by the user being followed
+	_, err = tx.Exec(`
+		INSERT INTO almost_private (user_id, post_id)
+		SELECT ?, post_id 
+		FROM posts 
+		WHERE created_by = ? 
+		AND visibility = 'ALMOST_PRIVATE'
+		AND post_id NOT IN (SELECT post_id FROM almost_private WHERE user_id = ?)
+	`, followerId, userId, followerId)
+	if err != nil {
+		return err
+	}
+
+	// Commit the transaction
+	return tx.Commit()
 }
 
 // delete follower
 func (repo *UserRepository) DeleteFollower(userId, followerId string) error {
-	_, err := repo.DB.Exec("DELETE FROM followers WHERE (user_id = ? AND follower_id = ?)", userId, followerId)
+	// Start a transaction to ensure all operations succeed or fail together
+	tx, err := repo.DB.Begin()
 	if err != nil {
 		return err
 	}
-	return nil
+	defer tx.Rollback()
+
+	// Remove from followers table
+	_, err = tx.Exec("DELETE FROM followers WHERE (user_id = ? AND follower_id = ?)", userId, followerId)
+	if err != nil {
+		return err
+	}
+
+	// Remove access from almost_private posts created by the user being unfollowed
+	_, err = tx.Exec(`
+		DELETE FROM almost_private 
+		WHERE user_id = ? 
+		AND post_id IN (SELECT post_id FROM posts WHERE created_by = ?)
+	`, followerId, userId)
+	if err != nil {
+		return err
+	}
+
+	// Remove access from private_post_access for posts created by the user being unfollowed
+	_, err = tx.Exec(`
+		DELETE FROM private_post_access 
+		WHERE user_id = ? 
+		AND post_id IN (SELECT post_id FROM posts WHERE created_by = ?)
+	`, followerId, userId)
+	if err != nil {
+		return err
+	}
+
+	// Commit the transaction
+	return tx.Commit()
 }
 
 // SearchUsers searches for users by first name, last name, or nickname
