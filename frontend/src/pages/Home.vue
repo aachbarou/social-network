@@ -9,7 +9,12 @@
     <!-- Create Post Section -->
     <div class="create-post-card">
       <div class="create-post-header">
-        <div class="user-avatar">VU</div>
+        <div class="user-avatar">
+          <img v-if="userStore.user?.avatar || userStore.user?.imagePath" 
+               :src="getFullImageUrl(userStore.user.avatar || userStore.user.imagePath)" 
+               alt="Avatar" />
+          <span v-else>{{ userStore.user?.nickname?.slice(0, 2).toUpperCase() || 'VU' }}</span>
+        </div>
         <input 
           type="text" 
           placeholder="Quoi de neuf aujourd'hui ?" 
@@ -70,7 +75,12 @@
         <div v-if="post">
           <div class="post-card">
             <div class="post-header">
-              <div class="user-avatar">{{ post.userInitials }}</div>
+              <div class="user-avatar">
+                <img v-if="post.userAvatar" 
+                     :src="getFullImageUrl(post.userAvatar)" 
+                     :alt="post.userName" />
+                <span v-else>{{ post.userInitials }}</span>
+              </div>
               <div class="post-meta">
                 <h3 class="user-name">{{ post.userName }}</h3>
                 <div class="post-time-container">
@@ -91,7 +101,6 @@
                   <span>Image</span>
                 </div>
               </div>
-              <pre v-if="false">Debug post: {{ JSON.stringify(post, null, 2) }}</pre>
             </div>
             <div class="post-actions">
               <button class="action-btn" @click="toggleComments(post.id)">
@@ -105,7 +114,12 @@
               <div v-if="post.comments && post.comments.length > 0" class="comments-list">
                 <div v-for="comment in post.comments" :key="comment.id" class="comment">
                   <div class="comment-header">
-                    <div class="user-avatar small">{{ comment.userInitials || (comment.author?.nickname ? comment.author.nickname.slice(0,2).toUpperCase() : 'U') }}</div>
+                    <div class="user-avatar small">
+                      <img v-if="comment.author?.avatar || comment.author?.imagePath || comment.author?.image" 
+                           :src="getFullImageUrl(comment.author.avatar || comment.author.imagePath || comment.author.image)" 
+                           :alt="comment.userName || comment.author?.nickname || 'Utilisateur'" />
+                      <span v-else>{{ comment.userInitials || (comment.author?.nickname ? comment.author.nickname.slice(0,2).toUpperCase() : 'U') }}</span>
+                    </div>
                     <div class="comment-meta">
                       <h4 class="comment-user">
                         {{ comment.userName || comment.author?.nickname || 'Utilisateur' }}
@@ -122,7 +136,12 @@
                 </div>
               </div>
               <div class="comment-form">
-                <div class="user-avatar small">VU</div>
+                <div class="user-avatar small">
+                  <img v-if="userStore.user?.avatar || userStore.user?.imagePath" 
+                       :src="getFullImageUrl(userStore.user.avatar || userStore.user.imagePath)" 
+                       alt="Avatar" />
+                  <span v-else>{{ userStore.user?.nickname?.slice(0, 2).toUpperCase() || 'VU' }}</span>
+                </div>
                 <input 
                   type="text" 
                   v-model="newCommentText" 
@@ -215,6 +234,7 @@ export default {
       publishPost,
       // Utilities
       getImageUrl,
+      getFullImageUrl,
       formatDate,
       handleImageError,
       getCommentImage,
@@ -264,11 +284,15 @@ export default {
       submitCommentAction,
       publishPost,
       getImageUrl,
+      getFullImageUrl,
       formatDate,
       handleImageError,
       getCommentImage,
       isValidDate,
       getPostPrivacyIconComponent,
+      
+      // User store
+      userStore,
     };
   },
 }
@@ -333,6 +357,14 @@ export default {
   font-weight: 600;
   font-size: 14px;
   flex-shrink: 0;
+  overflow: hidden;
+}
+
+.user-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
 }
 
 .create-post-input {
@@ -572,13 +604,19 @@ export default {
 .image-preview-container {
   position: relative;
   margin-top: 15px;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .image-preview {
   width: 100%;
-  max-height: 250px;
+  max-width: 100%;
+  max-height: 200px;
+  height: auto;
   border-radius: 12px;
   object-fit: cover;
+  display: block;
 }
 
 .remove-image-btn {
@@ -632,6 +670,13 @@ export default {
   width: 30px;
   height: 30px;
   font-size: 12px;
+}
+
+.user-avatar.small img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
 }
 
 .comment-meta {

@@ -5,7 +5,7 @@
       <div class="user-avatar">
         <img 
           v-if="request.user.profilePic" 
-          :src="request.user.profilePic" 
+          :src="getFullImageUrl(request.user.profilePic)" 
           :alt="`${request.user.firstName} ${request.user.lastName}`"
           @error="handleImageError"
         />
@@ -58,7 +58,11 @@
 
 <script setup>
 import { ref } from 'vue'
+import { useMainStore } from '../../stores/postsStore'
 import { Users, Calendar, UserCheck, UserX } from 'lucide-vue-next'
+
+const mainStore = useMainStore()
+const { getFullImageUrl } = mainStore
 
 const props = defineProps({
   request: {

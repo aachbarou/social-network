@@ -208,6 +208,13 @@ export const useMainStore = defineStore('main', () => {
     return `http://localhost:8081/${cleanPath}`;
   };
 
+  // Global user avatar/image URL handler - works for all user images regardless of privacy
+  const getFullImageUrl = (path) => {
+    if (!path) return '';
+    if (path.startsWith('http')) return path;
+    return `http://localhost:8081/${path.replace(/^\/+/, '')}`;
+  };
+
   const formatDate = (dateString) => {
     if (!dateString || dateString === "" || dateString === null || dateString === undefined) {
       return 'Récemment';
@@ -292,11 +299,16 @@ export const useMainStore = defineStore('main', () => {
       .map(post => {
         const imagePath = post.imagePath || post.image || (post.images && post.images.length > 0 ? post.images[0] : null);
         
+        // Get user avatar from author data - backend provides this as post.author.avatar (JSON tag from User model)
+        const userAvatar = post.author?.avatar || post.author?.imagePath || post.author?.image || null;
+        
         return {
           id: post.id,
-          userName: post.author?.nickname || currentUser?.nickname || 'Utilisateur',
+          userName: post.author?.nickname || post.author?.firstName || currentUser?.nickname || 'Utilisateur',
           userInitials: post.author?.nickname ? post.author.nickname.slice(0,2).toUpperCase() : 
-                       (currentUser?.nickname ? currentUser.nickname.slice(0,2).toUpperCase() : '??'),
+                       (post.author?.firstName ? post.author.firstName.slice(0,2).toUpperCase() : 
+                       (currentUser?.nickname ? currentUser.nickname.slice(0,2).toUpperCase() : '??')),
+          userAvatar: userAvatar,
           timeAgo: post.createdAt ? formatDate(post.createdAt) : '',
           content: post.content,
           hasImage: !!imagePath,
@@ -361,6 +373,7 @@ export const useMainStore = defineStore('main', () => {
     
     // Utilities
     getImageUrl,
+    getFullImageUrl,
     formatDate,
     handleImageError,
     getCommentImage,

@@ -26,7 +26,7 @@
               class="search-result-item"
               @click="goToProfile(user.id)"
             >
-              <img :src="user.avatar ? ('/' + user.avatar) : '/src/assets/default-avatar.png'" class="search-result-avatar" />
+              <img :src="getFullImageUrl(user.avatar || user.imagePath)" class="search-result-avatar" />
               <span class="search-result-name">{{ user.nickname || (user.firstName + ' ' + user.lastName) }}</span>
             </div>
           </div>
@@ -65,7 +65,7 @@
                 <!-- Follow Requests -->
                 <div v-if="notif.type === 'FOLLOW'" class="notification-item follow-request">
                   <div class="notification-avatar">
-                    <img v-if="notif.user?.avatar" :src="notif.user.avatar" alt="Avatar" />
+                    <img v-if="notif.user?.avatar || notif.user?.imagePath" :src="getFullImageUrl(notif.user.avatar || notif.user.imagePath)" alt="Avatar" />
                     <div v-else class="default-avatar">{{ notif.user?.firstName?.[0] || 'U' }}</div>
                   </div>
                   <div class="notification-content">
@@ -183,7 +183,11 @@
         
         <div class="navbar-profile">
           <div class="profile-avatar">
-            <span>{{ currentUser?.firstName?.[0] || 'U' }}</span>
+            <img v-if="currentUser?.avatar || currentUser?.imagePath" 
+                 :src="getFullImageUrl(currentUser.avatar || currentUser.imagePath)" 
+                 :alt="currentUser?.firstName || 'User'"
+                 class="profile-avatar-img" />
+            <span v-else class="profile-avatar-initial">{{ currentUser?.firstName?.[0] || 'U' }}</span>
           </div>
           <ChevronDownIcon class="dropdown-icon" />
         </div>
@@ -280,6 +284,7 @@ import {
 } from '@heroicons/vue/24/outline'
 import { useUserStore } from '../stores/userStore'
 import { useNotificationStore } from '../stores/notificationStore'
+import { useMainStore } from '../stores/postsStore'
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import wsService from '../services/websocketService'
@@ -304,6 +309,11 @@ export default {
     const route = useRoute()
     const userStore = useUserStore()
     const notificationStore = useNotificationStore()
+    const mainStore = useMainStore()
+    
+    // Get image URL function from store
+    const { getFullImageUrl } = mainStore
+    
     const showResults = ref(false)
     const searchQuery = ref('')
     const searchResults = ref([])
@@ -476,6 +486,7 @@ export default {
       searchProfiles,
       onSearchInput,
       goToProfile,
+      getFullImageUrl,
       isLoggedIn,
       currentUser
     }
@@ -960,6 +971,20 @@ export default {
   color: white;
   font-weight: bold;
   font-size: 12px;
+  overflow: hidden;
+}
+
+.navbar-profile .profile-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+.navbar-profile .profile-avatar-initial {
+  font-weight: bold;
+  font-size: 12px;
+  color: white;
 }
 
 /* Search Results Dropdown */

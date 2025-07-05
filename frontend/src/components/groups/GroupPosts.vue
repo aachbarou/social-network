@@ -5,7 +5,10 @@
       <div class="create-post-card" :class="{ 'expanded': isCreatePostExpanded }">
         <div class="create-post-header">
           <div class="user-avatar">
-            <Users :size="20" />
+            <img v-if="userStore.user?.avatar || userStore.user?.imagePath" 
+                 :src="getFullImageUrl(userStore.user.avatar || userStore.user.imagePath)" 
+                 alt="Avatar" />
+            <span v-else>{{ userStore.user?.nickname?.slice(0, 2).toUpperCase() || 'VU' }}</span>
           </div>
           <textarea
             v-model="newPost.content"
@@ -75,21 +78,23 @@
       <div v-for="post in displayPosts" :key="post.id" class="post-card">
         <div class="post-header">
           <div class="author-avatar">
-            <img v-if="post.author && post.author.profilePic" :src="post.author.profilePic" :alt="post.author.name" />
+            <img v-if="post.userAvatar" 
+                 :src="getFullImageUrl(post.userAvatar)" 
+                 :alt="post.userName" />
             <div v-else class="default-author">
-              <Users :size="24" />
+              <span>{{ post.userInitials || 'U' }}</span>
             </div>
           </div>
           <div class="post-info">
-            <h4>{{ (post.author && post.author.firstName) ? `${post.author.firstName} ${post.author.lastName}` : 'Utilisateur inconnu' }}</h4>
+            <h4>{{ post.userName || 'Utilisateur inconnu' }}</h4>
             <span class="post-date">{{ formatDate(post.createdAt) }}</span>
           </div>
         </div>
         
         <div class="post-content">
           <p v-if="post.content">{{ post.content }}</p>
-          <p v-else-if="!post.image" class="no-content">Contenu non disponible</p>
-          <img v-if="post.image" :src="getImageUrl(post.image)" :alt="post.content || 'Image du post'" class="post-image" />
+          <p v-else-if="!post.hasImage" class="no-content">Contenu non disponible</p>
+          <img v-if="post.hasImage && post.imagePath" :src="getImageUrl(post.imagePath)" :alt="post.content || 'Image du post'" class="post-image" />
         </div>
         
         <!-- Comments Section -->
@@ -109,6 +114,14 @@
             <div v-if="post.comments && post.comments.length > 0" class="comments-list">
               <div v-for="comment in post.comments" :key="comment.id" class="comment">
                 <div class="comment-header">
+                  <div class="comment-avatar">
+                    <img v-if="comment.author && (comment.author.avatar || comment.author.imagePath || comment.author.image)" 
+                         :src="getFullImageUrl(comment.author.avatar || comment.author.imagePath || comment.author.image)" 
+                         :alt="`${comment.author.firstName} ${comment.author.lastName}`" />
+                    <div v-else class="default-comment-author">
+                      <Users :size="16" />
+                    </div>
+                  </div>
                   <div class="comment-author">
                     <span class="author-name">{{ comment.author.firstName }} {{ comment.author.lastName }}</span>
                     <span class="comment-date">{{ formatDate(comment.createdAt) }}</span>
@@ -125,6 +138,12 @@
             <div class="add-comment">
               <form @submit.prevent="addComment(post.id)">
                 <div class="comment-form">
+                  <div class="current-user-avatar">
+                    <img v-if="userStore.user?.avatar || userStore.user?.imagePath" 
+                         :src="getFullImageUrl(userStore.user.avatar || userStore.user.imagePath)" 
+                         alt="Avatar" />
+                    <span v-else>{{ userStore.user?.nickname?.slice(0, 2).toUpperCase() || 'VU' }}</span>
+                  </div>
                   <textarea
                     v-model="getCommentRef(post.id).content"
                     placeholder="Ajouter un commentaire..."
@@ -174,7 +193,13 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useGroupStore } from '../../stores/groupStore'
+import { useMainStore } from '../../stores/postsStore'
+import { useUserStore } from '../../stores/userStore'
 import { Image, Send, X, FileText, Users, MessageCircle } from 'lucide-vue-next'
+
+const mainStore = useMainStore()
+const userStore = useUserStore()
+const { getFullImageUrl, formatPostsData } = mainStore
 
 // Props
 const props = defineProps({
@@ -218,7 +243,11 @@ const commonEmojis = [
 // Computed
 const displayPosts = computed(() => {
   const posts = props.posts.length > 0 ? props.posts : groupStore.currentGroupPosts
-  return posts
+  
+  // Format the posts using the same function as Home.vue for consistency
+  const formattedPosts = formatPostsData(posts, userStore.user)
+  
+  return formattedPosts
 })
 
 const getCommentRef = (postId) => {
@@ -480,6 +509,14 @@ const formatDate = (dateString) => {
   font-weight: 600;
   font-size: 14px;
   flex-shrink: 0;
+  overflow: hidden;
+}
+
+.user-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
 }
 
 .create-post-input {
@@ -786,6 +823,12 @@ const formatDate = (dateString) => {
 .default-author {
   color: #000;
   font-weight: 600;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
 }
 
 .post-info {
@@ -886,6 +929,31 @@ const formatDate = (dateString) => {
   margin-bottom: 8px;
 }
 
+.comment-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 1px solid rgba(232, 121, 198, 0.3);
+  background: linear-gradient(135deg, #e879c6 0%, #78c7ff 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.comment-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.default-comment-author {
+  color: #000;
+  font-weight: 600;
+  font-size: 10px;
+}
+
 .comment-author {
   flex: 1;
 }
@@ -930,6 +998,29 @@ const formatDate = (dateString) => {
   display: flex;
   align-items: flex-end;
   gap: 10px;
+}
+
+.current-user-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2px solid rgba(232, 121, 198, 0.3);
+  background: linear-gradient(135deg, #e879c6 0%, #78c7ff 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #000;
+  font-weight: 600;
+  font-size: 12px;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.current-user-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
 }
 
 .comment-form textarea {

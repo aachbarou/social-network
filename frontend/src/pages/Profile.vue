@@ -184,7 +184,12 @@
               <div v-if="post">
                 <div class="post-card">
                   <div class="post-header">
-                    <div class="user-avatar">{{ post.userInitials }}</div>
+                    <div class="user-avatar">
+                      <img v-if="post.userAvatar" 
+                           :src="getFullImageUrl(post.userAvatar)" 
+                           :alt="post.userName" />
+                      <span v-else>{{ post.userInitials }}</span>
+                    </div>
                     <div class="post-meta">
                       <h3 class="user-name">{{ post.userName }}</h3>
                       <div class="post-time-container">
@@ -218,7 +223,12 @@
                     <div v-if="post.comments && post.comments.length > 0" class="comments-list">
                       <div v-for="comment in post.comments" :key="comment.id" class="comment">
                         <div class="comment-header">
-                          <div class="user-avatar small">{{ comment.userInitials || (comment.author?.nickname ? comment.author.nickname.slice(0,2).toUpperCase() : 'U') }}</div>
+                          <div class="user-avatar small">
+                            <img v-if="comment.author?.avatar || comment.author?.imagePath || comment.author?.image" 
+                                 :src="getFullImageUrl(comment.author.avatar || comment.author.imagePath || comment.author.image)" 
+                                 :alt="comment.userName || comment.author?.nickname || 'Utilisateur'" />
+                            <span v-else>{{ comment.userInitials || (comment.author?.nickname ? comment.author.nickname.slice(0,2).toUpperCase() : 'U') }}</span>
+                          </div>
                           <div class="comment-meta">
                             <h4 class="comment-user">
                               {{ comment.userName || comment.author?.nickname || 'Utilisateur' }}
@@ -235,7 +245,12 @@
                       </div>
                     </div>
                     <div class="comment-form">
-                      <div class="user-avatar small">{{ currentUserInitials }}</div>
+                      <div class="user-avatar small">
+                        <img v-if="userStore.user?.avatar || userStore.user?.imagePath" 
+                             :src="getFullImageUrl(userStore.user.avatar || userStore.user.imagePath)" 
+                             alt="Avatar" />
+                        <span v-else>{{ currentUserInitials }}</span>
+                      </div>
                       <input 
                         type="text" 
                         v-model="newCommentText" 
@@ -277,9 +292,13 @@
             </div>
             <!-- Show followers only if allowed to see them -->
             <div v-else-if="isOwnProfile || isPublic || isFollowing" v-for="follower in profileFollowers" :key="follower.id" class="user-card">
-              <img :src="getFullImageUrl(follower.avatar)" 
-                   :alt="follower.nickname" 
+              <img v-if="follower.imagePath || follower.image || follower.avatar" 
+                   :src="getFullImageUrl(follower.imagePath || follower.image || follower.avatar)" 
+                   :alt="follower.nickname || follower.firstName" 
                    class="user-avatar" />
+              <div v-else class="user-avatar default-avatar">
+                {{ (follower.firstName?.[0] || follower.nickname?.[0] || 'U').toUpperCase() }}
+              </div>
               <div class="user-info">
                 <h4>{{ follower.nickname || follower.firstName }}</h4>
                 <p>{{ follower.firstName }} {{ follower.lastName }}</p>
@@ -304,9 +323,13 @@
             </div>
             <!-- Show following only if allowed to see them -->
             <div v-else-if="isOwnProfile || isPublic || isFollowing" v-for="following in profileFollowing" :key="following.id" class="user-card">
-              <img :src="getFullImageUrl(following.avatar)" 
-                   :alt="following.nickname" 
+              <img v-if="following.imagePath || following.image || following.avatar" 
+                   :src="getFullImageUrl(following.imagePath || following.image || following.avatar)" 
+                   :alt="following.nickname || following.firstName" 
                    class="user-avatar" />
+              <div v-else class="user-avatar default-avatar">
+                {{ (following.firstName?.[0] || following.nickname?.[0] || 'U').toUpperCase() }}
+              </div>
               <div class="user-info">
                 <h4>{{ following.nickname || following.firstName }}</h4>
                 <p>{{ following.firstName }} {{ following.lastName }}</p>
@@ -423,6 +446,7 @@ const {
   toggleComments,
   submitCommentAction,
   getImageUrl,
+  getFullImageUrl,
   formatDate,
   handleImageError,
   getCommentImage,
@@ -474,12 +498,6 @@ const visibleFollowingCount = computed(() => {
   }
   return 0; // Hide count for private profiles when not following
 });
-
-function getFullImageUrl(path) {
-  if (!path) return ''
-  if (path.startsWith('http')) return path
-  return `http://localhost:8081/${path.replace(/^\/+/,'')}`
-}
 
 const fetchUserPostsAndSet = async (userId) => {
   const userPosts = await fetchUserPosts(userId);
@@ -1553,12 +1571,27 @@ const submitProfileComment = async (postId) => {
   font-weight: 600;
   font-size: 14px;
   flex-shrink: 0;
+  overflow: hidden;
+}
+
+.posts-feed .user-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
 }
 
 .posts-feed .user-avatar.small {
   width: 30px;
   height: 30px;
   font-size: 12px;
+}
+
+.posts-feed .user-avatar.small img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
 }
 
 .posts-feed .post-meta {

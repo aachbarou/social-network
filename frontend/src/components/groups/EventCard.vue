@@ -97,8 +97,11 @@
           :class="response.response"
         >
           <div class="participant-avatar">
-            {{ getInitials(response.userName) }}
-          </div>
+  <img v-if="response.avatar || response.user?.avatar || response.profilePic || response.user?.profilePic" 
+       :src="getFullImageUrl(response.avatar || response.user?.avatar || response.profilePic || response.user?.profilePic)" 
+       :alt="response.userName" />
+  <span v-else>{{ getInitials(response.userName) }}</span>
+</div>
           <span class="participant-name">{{ response.userName }}</span>
           <div class="participant-status">
             <component 
@@ -126,6 +129,7 @@ import {
 } from 'lucide-vue-next'
 import { useGroupStore } from '../../stores/groupStore'
 import { useUserStore } from '../../stores/userStore'
+import { useMainStore } from '../../stores/postsStore'
 
 const props = defineProps({
   event: {
@@ -142,6 +146,9 @@ const emit = defineEmits(['update-response'])
 
 const groupStore = useGroupStore()
 const userStore = useUserStore()
+const mainStore = useMainStore()
+const { getFullImageUrl } = mainStore
+
 const showParticipants = ref(false)
 
 const formatDay = (dateString) => {
@@ -409,6 +416,13 @@ const updateResponse = async (response) => {
   color: white;
   font-weight: 600;
   font-size: 0.9rem;
+  overflow: hidden;
+}
+
+.participant-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .participant-name {

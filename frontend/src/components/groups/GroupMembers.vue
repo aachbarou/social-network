@@ -10,7 +10,7 @@
     <div v-else class="members-grid">
       <div v-for="member in members" :key="member.id" class="member-card">
         <div class="member-avatar">
-          <img v-if="member.profilePic" :src="member.profilePic" :alt="member.name" />
+          <img v-if="member.avatar || member.profilePic" :src="getFullImageUrl(member.avatar || member.profilePic)" :alt="member.name" />
           <div v-else class="default-member">
             <Users :size="24" />
           </div>
@@ -27,6 +27,11 @@
 
 <script setup>
 import { Users, Crown } from 'lucide-vue-next'
+import { useMainStore } from '../../stores/postsStore'
+
+const mainStore = useMainStore()
+const { getFullImageUrl } = mainStore
+
 defineProps({
   members: {
     type: Array,

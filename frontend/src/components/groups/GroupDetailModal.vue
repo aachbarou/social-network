@@ -119,7 +119,7 @@
             >
               <img 
                 v-if="member.profilePic" 
-                :src="member.profilePic" 
+                :src="getFullImageUrl(member.profilePic)" 
                 :alt="`${member.firstName} ${member.lastName}`"
                 @error="handleMemberImageError"
               />
@@ -147,8 +147,12 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useMainStore } from '../../stores/postsStore'
 import { Users, Globe, Lock, X, MessageCircle, Clock, Settings, FileText, Camera, UserPlus } from 'lucide-vue-next'
 import InviteUsersModal from './InviteUsersModal.vue'
+
+const mainStore = useMainStore()
+const { getFullImageUrl } = mainStore
 
 const props = defineProps({
   group: {
