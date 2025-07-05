@@ -81,7 +81,10 @@
                     <div v-if="message.sender !== currentUser.id" class="message-wrapper received">
                       <div class="message-layout">
                         <div class="message-avatar-wrapper">
-                          <img :src="selectedUser.avatar || 'imageUpload/default.svg'" alt="Avatar" class="message-avatar">
+                          <img 
+                 :src="getFullImageUrl(selectedUser.avatar || selectedUser.imagePath)"
+                 alt="Avatar" class="chat-header-avatar" style="max-width:120px; max-height:120px; object-fit:contain; border:2px solid #e879c6; background:#fff;" />
+      
                         </div>
                         <div class="message-bubble received">
                           <div>{{ message.text }}</div>
@@ -92,7 +95,10 @@
                     <div v-else class="message-wrapper sent">
                       <div class="message-layout sent">
                         <div class="message-avatar-wrapper">
-                          <img :src="currentUser.avatar || 'imageUpload/default.svg'" alt="Avatar" class="message-avatar">
+                          <img 
+                 :src="getFullImageUrl(currentUser.avatar || currentUser.imagePath)"
+                 alt="Avatar" class="chat-header-avatar" style="max-width:120px; max-height:120px; object-fit:contain; border:2px solid #e879c6; background:#fff;" />
+      
                         </div>
                         <div class="message-bubble sent">
                           <div>{{ message.text }}</div>
