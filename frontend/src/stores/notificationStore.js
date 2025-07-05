@@ -230,6 +230,31 @@ export const useNotificationStore = defineStore('notification', () => {
     }
   }
 
+  async function dismissNotification(notificationId) {
+    try {
+      const response = await fetch(`http://localhost:8081/dismissNotification`, {
+        method: 'DELETE',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ notificationId })
+      })
+
+      if (response.ok) {
+        // Remove from local state
+        notifications.value = notifications.value.filter(n => n.id !== notificationId)
+      } else {
+        const errorText = await response.text()
+        console.error('Failed to dismiss notification:', response.status, errorText)
+        error.value = 'Erreur lors de la suppression de la notification'
+      }
+    } catch (e) {
+      console.error('Error dismissing notification:', e)
+      error.value = 'Erreur réseau'
+    }
+  }
+
   function dismissError() {
     error.value = null
   }
@@ -277,6 +302,7 @@ export const useNotificationStore = defineStore('notification', () => {
     markAllAsRead,
     markAsRead,
     markAsReadOnView,
+    dismissNotification,
     dismissError,
     isProcessing,
     formatNotificationTime

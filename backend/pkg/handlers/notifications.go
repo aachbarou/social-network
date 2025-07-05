@@ -90,3 +90,35 @@ func (handler *Handler) MarkAllNotificationsAsRead(w http.ResponseWriter, r *htt
 
 	utils.RespondWithSuccess(w, "All notifications marked as read", 200)
 }
+
+// DismissNotification deletes a notification for the current user
+func (handler *Handler) DismissNotification(w http.ResponseWriter, r *http.Request) {
+	w = utils.ConfigHeader(w)
+	
+	if r.Method != http.MethodDelete {
+		utils.RespondWithError(w, "Method not allowed", 405)
+		return
+	}
+
+	var request struct {
+		NotificationID string `json:"notificationId"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		utils.RespondWithError(w, "Invalid request body", 400)
+		return
+	}
+
+	if request.NotificationID == "" {
+		utils.RespondWithError(w, "Notification ID is required", 400)
+		return
+	}
+
+	err := handler.repos.NotifRepo.Delete(request.NotificationID)
+	if err != nil {
+		utils.RespondWithError(w, "Error dismissing notification", 500)
+		return
+	}
+
+	utils.RespondWithSuccess(w, "Notification dismissed", 200)
+}

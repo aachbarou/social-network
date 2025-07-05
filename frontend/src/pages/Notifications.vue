@@ -62,14 +62,23 @@
               >
                 {{ notificationStore.isProcessing(notif.id) ? 'Traitement...' : 'Refuser' }}
               </button>
+              <button 
+                @click="dismissWithConfirmation(notif.id, 'follow')" 
+                class="dismiss-btn"
+                :disabled="notificationStore.isProcessing(notif.id)"
+              >
+                Supprimer
+              </button>
             </div>
           </div>
         </div>
       </div>
       
       <!-- Group Invites Section -->
+      <!-- Note: Group invites cannot be dismissed as they are required for the invite system to function -->
       <div class="notification-section" v-if="notificationStore.groupInvites.length > 0">
         <h2>Invitations de groupe</h2>
+        <p class="section-info">Utilisez "Rejoindre" ou "Refuser" pour répondre aux invitations.</p>
         <div class="notification-list">
           <div v-for="notif in notificationStore.groupInvites" :key="notif.id" class="notification-card group-invite">
             <div class="notification-header">
@@ -108,8 +117,10 @@
       </div>
       
       <!-- Group Requests Section -->
+      <!-- Note: Group requests cannot be dismissed as they are required for the request system to function -->
       <div class="notification-section" v-if="notificationStore.groupRequests.length > 0">
         <h2>Demandes d'adhésion aux groupes</h2>
+        <p class="section-info">Utilisez "Accepter" ou "Refuser" pour répondre aux demandes.</p>
         <div class="notification-list">
           <div v-for="notif in notificationStore.groupRequests" :key="notif.id" class="notification-card group-request">
             <div class="notification-header">
@@ -173,7 +184,12 @@
               </div>
             </div>
             <div class="notification-actions">
-              <button @click.stop="goToEvent(notif.event?.id, notif.group?.id)" class="view-btn">Voir les détails</button>
+              <button 
+                @click.stop="dismissWithConfirmation(notif.id, 'event')" 
+                class="dismiss-btn"
+              >
+                Supprimer
+              </button>
               <button 
                 @click.stop="notificationStore.markAsRead(notif.id)" 
                 class="mark-read-btn" 
@@ -200,11 +216,22 @@ const router = useRouter()
 const notificationStore = useNotificationStore()
 let removeWebSocketListener = null
 
-function goToEvent(eventId, groupId) {
-  if (eventId && groupId) {
-    router.push(`/groups/${groupId}/events/${eventId}`)
-  } else if (groupId) {
-    router.push(`/groups/${groupId}`)
+function dismissWithConfirmation(notificationId, type) {
+  let message = ''
+  
+  switch(type) {
+    case 'follow':
+      message = 'Supprimer cette demande de suivi ? La personne pourra soumettre une nouvelle demande.'
+      break
+    case 'event':
+      message = 'Supprimer cette notification d\'événement ?'
+      break
+    default:
+      message = 'Supprimer cette notification ?'
+  }
+  
+  if (confirm(message)) {
+    notificationStore.dismissNotification(notificationId)
   }
 }
 
@@ -283,7 +310,7 @@ onUnmounted(() => {
   color: #ef4444;
 }
 
-.dismiss-btn {
+.error-content .dismiss-btn {
   background: none;
   border: none;
   color: #ef4444;
@@ -295,6 +322,32 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.dismiss-btn {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.3) !important;
+  border-radius: 5px;
+  padding: 0.5rem 1rem;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dismiss-btn:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: rgba(239, 68, 68, 0.5) !important;
+  color: #ff6b6b;
+}
+
+.dismiss-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .loading {
@@ -350,6 +403,14 @@ onUnmounted(() => {
   font-size: 1.3rem;
   padding-bottom: 0.5rem;
   border-bottom: 1px solid rgba(120, 119, 198, 0.1);
+}
+
+.section-info {
+  color: #888;
+  font-size: 14px;
+  font-style: italic;
+  margin-bottom: 1rem;
+  margin-top: -0.5rem;
 }
 
 .notification-list {
@@ -506,6 +567,19 @@ onUnmounted(() => {
 .mark-read-btn:hover:not(:disabled) {
   color: #78dbff;
   border-color: rgba(120, 219, 255, 0.3) !important;
+}
+
+.dismiss-btn {
+  background: transparent;
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.3) !important;
+  font-size: 12px;
+  padding: 0.25rem 0.5rem;
+}
+
+.dismiss-btn:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.5) !important;
 }
 
 /* Different notification types */
