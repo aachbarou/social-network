@@ -47,7 +47,7 @@
           </button>
           
           <label class="action-btn">
-            <input type="file" ref="imageInput" @change="handleImageChange" accept="image/*" style="display: none" />
+            <input type="file" @change="handleImageChange" accept="image/*" style="display: none" />
             <Image :size="18" />
             Photo
           </label>
@@ -128,13 +128,13 @@
                   v-model="newCommentText" 
                   placeholder="Écrire un commentaire..." 
                   class="comment-input"
-                  @keyup.enter="submitComment(post.id)"
+                  @keyup.enter="submitCommentAction(post.id)"
                 />
                 <label class="comment-attach-btn">
                   <input type="file" @change="handleCommentImageChange" accept="image/*" style="display: none" />
                   <Image :size="18" />
                 </label>
-                <button class="comment-send-btn" @click="submitComment(post.id)">
+                <button class="comment-send-btn" @click="submitCommentAction(post.id)">
                   <Send :size="18" />
                 </button>
               </div>
@@ -174,328 +174,103 @@ export default {
     const mainStore = useMainStore();
     const followStore = useFollowStore();
     const userStore = useUserStore();
-    const { posts } = storeToRefs(mainStore);
+    
+    // Get everything from store - simple!
+    const { 
+      posts, 
+      formattedPosts,
+      // Comment state
+      activeCommentPostId,
+      newCommentText,
+      commentSelectedImage,
+      commentImagePreview,
+      // Post creation state
+      newPostContent,
+      showCreatePost,
+      selectedImage,
+      imagePreview,
+      selectedPrivacy,
+      selectedFollowers
+    } = storeToRefs(mainStore);
+    
     const { followers } = storeToRefs(followStore);
-    mainStore.fetchPosts(); // Fetch posts on component mount
     
-    // For new post creation
-    const newPostContent = ref('');
-    const showCreatePost = ref(false);
-    const selectedImage = ref(null);
-    const imagePreview = ref('');
-    const imageInput = ref(null);
-    const selectedPrivacy = ref('public');
-    const selectedFollowers = ref([]);
+    // All methods from store - simple!
+    const {
+      fetchPosts,
+      // Image handling
+      handleCommentImageChange,
+      removeCommentImage,
+      handleImageChange,
+      removeImage,
+      // Privacy
+      togglePrivacy,
+      getPrivacyIconComponent,
+      getPrivacyText,
+      getPrivacyTooltip,
+      // Comments
+      toggleComments,
+      submitCommentAction,
+      // Post creation
+      publishPost,
+      // Utilities
+      getImageUrl,
+      formatDate,
+      handleImageError,
+      getCommentImage,
+      isValidDate,
+      getPostPrivacyIconComponent
+    } = mainStore;
     
-    // Fetch followers when privacy changes to PRIVATE or ALMOST_PRIVATE
+    fetchPosts(); // Fetch posts on component mount
+    
+    // Watch for privacy changes to fetch followers
     watch(selectedPrivacy, async (val) => {
       if ((val === 'private' || val === 'almost_private') && userStore.user?.id) {
         await followStore.fetchFollowers(userStore.user.id);
       }
     });
     
-    // For comments
-    const activeCommentPostId = ref(null);
-    const newCommentText = ref('');
-    const commentSelectedImage = ref(null);
-    const commentImagePreview = ref('');
-    
-    const handleImageChange = (event) => {
-      const file = event.target.files[0];
-      if (file) {
-        selectedImage.value = file;
-        imagePreview.value = URL.createObjectURL(file);
-      }
-    };
-    
-    const removeImage = () => {
-      selectedImage.value = null;
-      imagePreview.value = '';
-      if (imageInput.value) {
-        imageInput.value.value = '';
-      }
-    };
-    
-    const handleCommentImageChange = (event) => {
-      const file = event.target.files[0];
-      if (file) {
-        commentSelectedImage.value = file;
-        commentImagePreview.value = URL.createObjectURL(file);
-      }
-    };
-    
-    const removeCommentImage = () => {
-      commentSelectedImage.value = null;
-      commentImagePreview.value = '';
-    };
-    
-    const toggleComments = (postId) => {
-      activeCommentPostId.value = activeCommentPostId.value === postId ? null : postId;
-      newCommentText.value = '';
-      removeCommentImage();
-    };
-    
-    const getImageUrl = (path) => {
-      if (!path) return '';
-      
-      // If the path already includes http:// or https://, use it as is
-      if (path.startsWith('http://') || path.startsWith('https://')) {
-        return path;
-      }
-      
-      // Make sure path doesn't have double slashes when concatenating
-      const cleanPath = path.startsWith('/') ? path.substring(1) : path;
-      return `http://localhost:8081/${cleanPath}`;
-    };
-    
-    const formatDate = (dateString) => {
-      // Handle completely missing date - provide a friendly fallback
-      if (!dateString || dateString === "" || dateString === null || dateString === undefined) {
-        return 'Récemment'  // More user-friendly than "Date non disponible"
-      }
-      
-      try {
-        let date;
-        
-        // Handle Unix timestamp (both string and number)
-        if (typeof dateString === 'string' && /^\d+$/.test(dateString)) {
-          const timestamp = parseInt(dateString)
-          // Try both seconds and milliseconds
-          date = timestamp > 10000000000 ? new Date(timestamp) : new Date(timestamp * 1000)
-        } else if (typeof dateString === 'number') {
-          // Check if it's Unix timestamp (seconds) or JavaScript timestamp (milliseconds)
-          date = dateString < 10000000000 ? new Date(dateString * 1000) : new Date(dateString)
-        } else if (typeof dateString === 'string') {
-          // Try parsing as ISO string
-          date = new Date(dateString)
-        } else {
-          date = new Date(dateString)
-        }
-        
-        if (isNaN(date.getTime())) {
-          return 'Récemment'  // Fallback for invalid dates
-        }
-        
-        const now = new Date()
-        const diffMs = now - date
-        const diffMins = Math.floor(diffMs / 60000)
-        const diffHours = Math.floor(diffMins / 60)
-        const diffDays = Math.floor(diffHours / 24)
-        
-        if (diffMins < 1) return 'À l\'instant'
-        if (diffMins < 60) return `Il y a ${diffMins} min`
-        if (diffHours < 24) return `Il y a ${diffHours}h`
-        if (diffDays < 7) return `Il y a ${diffDays} jour${diffDays > 1 ? 's' : ''}`
-        
-        return date.toLocaleDateString('fr-FR', {
-          day: 'numeric',
-          month: 'short',
-          hour: '2-digit',
-          minute: '2-digit'
-        })
-      } catch (error) {
-        return 'Récemment'  // Fallback for any errors
-      }
-    };
-    
-    const handleImageError = (event) => {
-      console.error('Image failed to load:', event.target.src);
-      // Fall back to placeholder if image fails to load
-      event.target.style.display = 'none';
-      event.target.parentElement.innerHTML += `
-        <div class="post-image-placeholder">
-          <svg width="60" height="60" viewBox="0 0 24 24" fill="currentColor">
-            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-            <circle cx="8.5" cy="8.5" r="1.5"/>
-            <polyline points="21,15 16,10 5,21"/>
-          </svg>
-        </div>
-        <span>Image non disponible</span>
-      `;
-      event.target.parentElement.appendChild(placeholder);
-    };
-    
-    const submitComment = async (postId) => {
-      if (!newCommentText.value && !commentSelectedImage.value) return;
-      
-      await mainStore.submitComment(postId, {
-        body: newCommentText.value,
-        image: commentSelectedImage.value
-      });
-      
-      newCommentText.value = '';
-      removeCommentImage();
-    };
-    
-    // Privacy toggle functionality
-    const togglePrivacy = () => {
-      const privacyOptions = ['public', 'almost_private', 'private'];
-      const currentIndex = privacyOptions.indexOf(selectedPrivacy.value);
-      const nextIndex = (currentIndex + 1) % privacyOptions.length;
-      selectedPrivacy.value = privacyOptions[nextIndex];
-    };
-    
-    const getPrivacyIconComponent = () => {
-      switch (selectedPrivacy.value) {
-        case 'public': return 'Globe';
-        case 'almost_private': return 'Users';
-        case 'private': return 'Lock';
-        default: return 'Globe';
-      }
-    };
-    
-    const getPrivacyText = () => {
-      switch (selectedPrivacy.value) {
-        case 'public': return 'Public';
-        case 'almost_private': return 'Presque privé';
-        case 'private': return 'Privé';
-        default: return 'Public';
-      }
-    };
-    
-    const getPrivacyTooltip = () => {
-      switch (selectedPrivacy.value) {
-        case 'public': return 'Cliquez pour changer en Presque privé';
-        case 'almost_private': return 'Cliquez pour changer en Privé';
-        case 'private': return 'Cliquez pour changer en Public';
-        default: return 'Cliquez pour changer la confidentialité';
-      }
-    };
-    
-    const publishPost = async () => {
-      if (!newPostContent.value && !selectedImage.value) return;
-      const formData = new FormData();
-      formData.set('body', newPostContent.value);
-      formData.set('privacy', selectedPrivacy.value.toUpperCase().replace('_', '_'));
-      // Only send selected followers for private posts, not for almost_private
-      if (selectedPrivacy.value === 'private') {
-        formData.set('checkedfollowers', selectedFollowers.value.join(','));
-      }
-      if (selectedImage.value) {
-        formData.append('image', selectedImage.value);
-      }
-      
-      try {
-        const response = await fetch('http://localhost:8081/newPost', {
-          method: 'POST',
-          credentials: 'include',
-          body: formData
-        });
-        
-        const result = await response.json();
-        
-        if (!response.ok) {
-          console.error("Error creating post:", result);
-          alert("Erreur lors de la création du post: " + (result.message || "Erreur inconnue"));
-          return;
-        }
-        
-        newPostContent.value = '';
-        removeImage();
-        showCreatePost.value = false;
-                selectedPrivacy.value = 'public';
-        selectedFollowers.value = [];
-        await mainStore.fetchPosts();
-      } catch (error) {
-        console.error("Post creation failed:", error);
-        alert("Erreur de connexion lors de la création du post");
-      }
-    };
-    
-    const formattedPosts = computed(() => {
-      // Ensure posts.value is always an array
-      const arr = Array.isArray(posts.value) ? posts.value : [];
-      
-      const formattedArr = arr
-        .filter(post => post) // filter out nulls
-        .map(post => {
-          // Check for image path in various possible formats
-          const imagePath = post.imagePath || post.image || (post.images && post.images.length > 0 ? post.images[0] : null);
-          
-          return {
-            id: post.id,
-            userName: post.author?.nickname || 'Utilisateur',
-            userInitials: post.author?.nickname ? post.author.nickname.slice(0,2).toUpperCase() : '??',
-            timeAgo: post.createdAt ? formatDate(post.createdAt) : '',
-            content: post.content,
-            hasImage: !!imagePath,
-            imagePath: imagePath,
-            likes: post.likes || 0,
-            comments: post.comments || [],
-            commentsCount: post.comments ? post.comments.length : 0,
-            visibility: post.visibility || 'PUBLIC',
-          };
-        });
-      
-      return formattedArr;
-    });
-    // Helper to get privacy label
-    function getPrivacyLabel(visibility) {
-      if (visibility === 'PUBLIC') return 'Public';
-      if (visibility === 'ALMOST_PRIVATE') return 'Presque privé';
-      if (visibility === 'PRIVATE') return 'Privé';
-      return '';
-    }
-    
-    // Add this helper function inside setup()
-    const getCommentImage = (comment) => {
-      return comment.imagePath || comment.image || (comment.images && comment.images.length > 0 ? comment.images[0] : null);
-    };
-    
-    function isValidDate(date) {
-      return !isNaN(new Date(date).getTime());
-    }
-    
-    const getPostPrivacyIconComponent = (visibility) => {
-      switch (visibility) {
-        case 'PUBLIC': return 'Globe';
-        case 'ALMOST_PRIVATE': return 'Users';
-        case 'PRIVATE': return 'Lock';
-        default: return 'Globe';
-      }
-    };
-    
     return {
+      // State from store
       posts,
-      mainStore,
-      newPostContent,
-      showCreatePost,
-      selectedImage,
-      imagePreview,
-      imageInput,
-      handleImageChange,
-      removeImage,
-      publishPost,
       formattedPosts,
+      followers,
+      
+      // Comment state
       activeCommentPostId,
       newCommentText,
       commentSelectedImage,
       commentImagePreview,
-      toggleComments,
-      submitComment,
+      
+      // Post creation state
+      newPostContent,
+      showCreatePost,
+      selectedImage,
+      imagePreview,
+      selectedPrivacy,
+      selectedFollowers,
+      
+      // Methods from store
       handleCommentImageChange,
       removeCommentImage,
-      getImageUrl,
-      formatDate,
-      handleImageError,
-      getPrivacyLabel,
-      getPostPrivacyIconComponent,
-      getCommentImage,
-      isValidDate,
-      selectedPrivacy,
-      followers,
-      selectedFollowers,
+      handleImageChange,
+      removeImage,
       togglePrivacy,
       getPrivacyIconComponent,
       getPrivacyText,
       getPrivacyTooltip,
+      toggleComments,
+      submitCommentAction,
+      publishPost,
+      getImageUrl,
+      formatDate,
+      handleImageError,
+      getCommentImage,
+      isValidDate,
+      getPostPrivacyIconComponent,
     };
   },
-  data() {
-    return {
-      showCreatePost: false
-    }
-  }
 }
 </script>
 
