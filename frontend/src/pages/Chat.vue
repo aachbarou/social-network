@@ -31,7 +31,8 @@
               :class="{ 'active': selectedUser && selectedUser.id === friend.id }"
             >
               <div class="friend-avatar-wrapper">
-                 <img :src="getFullImageUrl(friend.avatar || friend.imagePath)" alt="Avatar" class="friend-avatar" />
+                <img :src="getFullImageUrl(friend.avatar || friend.imagePath)" alt="Avatar" class="friend-avatar" />
+                <span v-if="getUnreadCountForFriend(friend.id) > 0" class="unread-badge">{{ getUnreadCountForFriend(friend.id) }}</span>
               </div>
               <div class="friend-name">{{ friend.nickname || friend.firstName }}</div>
             </button>
@@ -202,7 +203,16 @@ const selectUser = async (user) => {
 };
 
 const handleIncomingMessage = (data) => {
-    if (data && data.action === 'notification' && data.notification) {
+  if (data && data.action === 'chat' && data.chatMessage) {
+    const message = data.chatMessage;
+    chatStore.addNewChatMessage(message);
+    // Si le chat n'est pas ouvert avec ce user, ajoute à unread
+    if (!selectedUser.value || selectedUser.value.id !== message.senderId) {
+      chatStore.addUnreadChatMessage(message);
+    } else {
+      scrollToBottom();
+    }
+  } else if (data && data.action === 'notification' && data.notification) {
         const message = data.notification;
         console.log("Unwrapped WebSocket message:", message);
         chatStore.addNewChatMessage(message);
@@ -219,8 +229,8 @@ const sendMessage = async () => {
   if (messageContent === '' || !selectedUser.value || !currentUser.value) {
     return;
   }
-
   const msgObj = {
+    action: 'chat', // Ajouté pour WebSocket
     receiverId: selectedUser.value.id,
     content: messageContent,
     type: 'PERSON',
@@ -250,16 +260,8 @@ const sendMessage = async () => {
   } catch (error) {
     console.error("Error sending message:", error);
   }
-  const sent = wsService.send(msgObj);
-
-  if (sent) {
-    newMessage.value = '';
-    showEmojis.value = false;
-    scrollToBottom(); 
-  } else {
-    console.error("WebSocket is not connected. Message not sent.");
-    alert("You are not connected to the chat server.");
-  }
+  // Envoi en temps réel via WebSocket
+  wsService.send(msgObj);
 };
 
 const toggleEmojis = () => {
@@ -268,6 +270,15 @@ const toggleEmojis = () => {
 
 const addEmoji = (emoji) => {
   newMessage.value += emoji;
+};
+
+const getUnreadCountForFriend = (friendId) => {
+  if (!currentUser.value) return 0;
+  return chatStore.unreadMessages
+    ? chatStore.unreadMessages.filter(
+        msg => msg.senderId === friendId && msg.receiverId === currentUser.value.id && msg.type === 'PERSON'
+      ).length
+    : 0;
 };
 
 onMounted(async () => {
@@ -364,6 +375,21 @@ onUnmounted(() => {
 .friend-avatar { height: 100%; width: 100%; object-fit: cover; }
 .friend-name { font-size: 1rem; font-weight: 500; color: inherit; }
 .friend-item.active .friend-name { font-weight: 600; }
+.unread-badge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  background: #d93f3f;
+  color: #ffffff;
+  border-radius: 50%;
+  height: 1.5rem;
+  width: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.875rem;
+  font-weight: bold;
+}
 
 .chat-area-wrapper { display: flex; flex-direction: column; flex: 1 1 0%; height: 100%; padding: 1.5rem; }
 .chat-box { display: flex; flex-direction: column; flex: 1 1 0%; border-radius: 1.5rem; background: #ffffff; border: 1px solid #e1e8ed; height: 100%; min-height: 0; }
@@ -410,4 +436,116 @@ onUnmounted(() => {
 .custom-scrollbar::-webkit-scrollbar-track { background: #f7f9fc; }
 .custom-scrollbar::-webkit-scrollbar-thumb { background: #d1d9e1; border-radius: 10px; }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #b0b8c1; }
+
+@media (max-width: 900px) {
+  .chat-container {
+    flex-direction: column;
+    height: 100vh;
+  }
+  .chat-layout {
+    flex-direction: column;
+    height: 100%;
+    width: 100vw;
+    min-width: 0;
+    overflow: visible;
+  }
+  .friends-list-section {
+    width: 100vw;
+    min-width: 0;
+    padding: 1rem 0.5rem;
+    border-right: none;
+    border-bottom: 1px solid #e1e8ed;
+    flex-direction: row;
+    align-items: center;
+    overflow-x: auto;
+    overflow-y: hidden;
+    height: auto;
+  }
+  .friends-list-container {
+    margin-top: 0;
+    flex-grow: 1;
+    min-width: 0;
+  }
+  .friends-list {
+    flex-direction: row;
+    gap: 0.5rem;
+    margin-top: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-right: 0;
+    width: 100vw;
+  }
+  .friend-item {
+    min-width: 4.5rem;
+    padding: 0.5rem 0.25rem;
+    flex-direction: column;
+    align-items: center;
+    font-size: 0.85rem;
+  }
+  .friend-avatar-wrapper {
+    height: 2rem;
+    width: 2rem;
+    margin-right: 0;
+    margin-bottom: 0.25rem;
+  }
+  .friend-name {
+    font-size: 0.85rem;
+    text-align: center;
+  }
+  .profile-card {
+    display: none;
+  }
+}
+
+@media (max-width: 600px) {
+  .chat-area-wrapper {
+    padding: 0.5rem;
+  }
+  .chat-box {
+    border-radius: 0.5rem;
+    padding: 0.25rem;
+  }
+  .chat-header {
+    padding: 0.5rem 0.5rem;
+  }
+  .chat-header-avatar {
+    width: 2rem;
+    height: 2rem;
+  }
+  .chat-header-name {
+    font-size: 1rem;
+  }
+  .messages-container {
+    padding: 0.5rem;
+  }
+  .message-bubble {
+    font-size: 0.95rem;
+    padding: 0.5rem 0.75rem;
+  }
+  .message-avatar-wrapper {
+    height: 1.5rem;
+    width: 1.5rem;
+  }
+  .message-input-section {
+    padding: 0.5rem 0.5rem;
+    gap: 0.5rem;
+  }
+  .message-input {
+    height: 2.5rem;
+    font-size: 0.95rem;
+    padding: 0 0.5rem;
+  }
+  .send-button {
+    height: 2.5rem;
+    width: 2.5rem;
+  }
+  .send-button-icon {
+    width: 1.1rem;
+    height: 1.1rem;
+  }
+  .emojis-picker {
+    width: 150px;
+    font-size: 1rem;
+  }
+}
 </style>
