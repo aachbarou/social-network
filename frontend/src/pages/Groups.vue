@@ -1,24 +1,19 @@
 <template>
   <div class="groups-page">
-    <!-- Header -->
     <GroupsHeader @create="showCreateModal = true" @refresh="loadData" :loading="loading" />
 
-    <!-- Navigation Tabs -->
     <GroupsTabBar 
       :active-tab="activeTab" 
       :tabs="tabs"
       @tab-change="activeTab = $event"
     />
 
-    <!-- Content -->
     <div class="content-section">
-      <!-- Loading State -->
       <div v-if="loading" class="loading-state">
         <div class="spinner"></div>
         <p>Chargement des groupes...</p>
       </div>
 
-      <!-- My Groups Tab -->
       <div v-else-if="activeTab === 'my'" class="groups-grid">
         <div v-if="userGroups.length === 0" class="empty-state">
           <div class="empty-icon">
@@ -41,7 +36,6 @@
         />
       </div>
 
-      <!-- Discover Tab -->
       <div v-else-if="activeTab === 'discover'" class="groups-grid">
         <div v-if="discoveryGroups.length === 0" class="empty-state">
           <div class="empty-icon">
@@ -61,7 +55,6 @@
         />
       </div>
 
-      <!-- Invitations Tab -->
       <div v-else-if="activeTab === 'invitations'" class="invitations-list">
         <div v-if="groupInvitations.length === 0" class="empty-state">
           <div class="empty-icon">
@@ -78,7 +71,6 @@
         />
       </div>
 
-      <!-- Requests Tab -->
       <div v-else-if="activeTab === 'requests'" class="requests-list">
         <div v-if="groupRequests.length === 0" class="empty-state">
           <div class="empty-icon">
@@ -96,7 +88,6 @@
       </div>
     </div>
 
-    <!-- Create Group Modal -->
     <CreateGroupModal 
       v-if="showCreateModal"
       @close="showCreateModal = false"
@@ -106,7 +97,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onActivated, onUnmounted, watch, nextTick } from 'vue'
+import { ref, computed, onMounted, onActivated, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useGroupStore } from '../stores/groupStore'
 import { storeToRefs } from 'pinia'
@@ -167,15 +158,8 @@ const tabs = computed(() => [
 
 // Methods
 const loadData = async () => {
-  console.log('Loading groups data...')
   try {
     await groupStore.loadGroupsData()
-    console.log('Data loaded:', {
-      userGroups: userGroups.value?.length || 0,
-      publicGroups: publicGroups.value?.length || 0,
-      invitations: groupInvitations.value?.length || 0,
-      requests: groupRequests.value?.length || 0
-    })
     // Force reactivity update
     await nextTick()
   } catch (error) {
@@ -189,60 +173,45 @@ const openGroup = (group) => {
 
 const requestToJoin = async (groupId) => {
   try {
-    // Find the group to check its privacy
     const group = publicGroups.value.find(g => g.id === groupId)
     if (!group) {
       return
     }
     
-    // Set loading state using store method immediately
     groupStore.setGroupLoading(groupId, true)
     
-    // Force a small delay to ensure the UI updates with loading state
     await new Promise(resolve => setTimeout(resolve, 500))
     
     const isPublic = group.privacy === 'public'
     
-    // Start the join operation
     const joinPromise = groupStore.joinGroup(groupId, isPublic)
     
-    // For public groups, redirect early while animation is still spinning
     if (isPublic) {
-      // Wait only 800ms total (including the 500ms above) to redirect while animation is active
       setTimeout(() => {
         router.push(`/group/${groupId}`)
-      }, 700) // 700ms + 500ms = 1200ms total
+      }, 700)
     }
     
-    // Wait for the join operation to complete
     const result = await joinPromise
     
     if (result.success) {
       if (!result.isPublic) {
-        // For private groups, reset loading state after showing animation
         setTimeout(() => {
           groupStore.setGroupLoading(groupId, false)
         }, 1500)
       }
-      // For public groups, don't reset loading state here since we're redirecting
     } else {
-      // If join failed, reset loading state
       groupStore.setGroupLoading(groupId, false)
     }
   } catch (error) {
     console.error('Error joining group:', error)
-    // Reset loading state on error
     groupStore.setGroupLoading(groupId, false)
   }
 }
 
 const handleGroupCreated = async () => {
-  console.log('handleGroupCreated called - closing modal and reloading data')
   showCreateModal.value = false
-  // Reload data to show the new group
-  console.log('Loading data after group creation...')
   await loadData()
-  console.log('Data loaded, switching to my tab')
   activeTab.value = 'my'
 }
 
@@ -254,7 +223,6 @@ const handleInvitationResponse = async (invitationId, action) => {
 }
 
 const handleRequestResponse = async (requestId, action) => {
-  // Find the request to get the groupId
   const request = groupRequests.value.find(req => req.id === requestId)
   if (!request || !request.group || !request.group.id) {
     console.error('Could not find groupId for request:', requestId)
@@ -268,33 +236,19 @@ const handleRequestResponse = async (requestId, action) => {
 }
 
 const openGroupChat = (groupId) => {
-  // Navigate to chat page with group context
-  // TODO: Implement group-specific chat or integrate with existing chat system
-  // For now, just navigate to the general chat page
-  // router.push(`/chat?group=${groupId}`)
-  
-  // Simple alert for now to show functionality
-  alert(`Chat du groupe ${groupId} - Fonctionnalité à implémenter`)
+  router.push(`/chat?groupId=${groupId}`)
 }
 
 // Lifecycle
 onMounted(() => {
-  console.log('Groups component mounted, loading data...')
   loadData()
 })
 
-// Reload data when navigating back to this page
 onActivated(() => {
-  console.log('Groups component activated, reloading data...')
   loadData()
 })
 
-// Watch for changes in store data
 watch([userGroups, publicGroups], ([newUserGroups, newPublicGroups]) => {
-  console.log('Store data changed:', {
-    userGroups: newUserGroups?.length || 0,
-    publicGroups: newPublicGroups?.length || 0
-  })
 }, { deep: true })
 </script>
 

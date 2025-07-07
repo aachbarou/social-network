@@ -29,7 +29,7 @@ export const useChatStore = defineStore('chat', () => {
   };
 
   const getUnreadGroupMessagesCount = (groupId) => {
-    return unreadMessages.value.filter((msg) => msg.receiverId === groupId).length;
+    return unreadMessages.value.filter((msg) => msg.receiverId === groupId && msg.type === 'GROUP').length;
   };
 
   const getUnreadMsgsCountFromDB = (userId) => {
