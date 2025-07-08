@@ -3,12 +3,13 @@ package utils
 import (
 	"net/http"
 
-	uuid "github.com/satori/go.uuid"
+	uuid "github.com/gofrs/uuid"
 )
 
 // Create unique ID
 func UniqueId() string {
-	return uuid.NewV4().String()
+	id, _ := uuid.NewV4()
+	return id.String()
 }
 
 func ConfigHeader(w http.ResponseWriter) http.ResponseWriter {
