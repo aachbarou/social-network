@@ -1,5 +1,5 @@
 <template>
-  <div class="main-layout">
+  <div class="main-layout" @click="handleClickOutside">
     <nav class="navbar">
       <div class="navbar-left">
         <div class="navbar-logo">
@@ -34,10 +34,136 @@
       
       <div class="navbar-right">
         <div class="notification-wrapper">
-          <button class="nav-icon-btn" @click="navigateTo('/notifications')">
+          <button class="nav-icon-btn" @click.stop="toggleNotificationDropdown">
             <BellIcon class="icon" :class="{ 'has-new': notificationStore.hasNewNotifications }" />
             <span v-if="notificationStore.unreadCount > 0" class="notification-badge">{{ notificationStore.unreadCount }}</span>
           </button>
+          
+          <div v-if="showNotificationDropdown" class="notification-dropdown">
+            <div class="notification-header">
+              <h3>Notifications</h3>
+              <button 
+                @click="notificationStore.markAllAsRead()" 
+                v-if="notificationStore.unreadCount > 0" 
+                class="mark-all-read"
+              >
+                Marquer tout lu ({{ notificationStore.unreadCount }})
+              </button>
+            </div>
+            <div v-if="notificationStore.loading" class="notification-loading">
+              <div class="loading-spinner-sm"></div>
+              <span>Chargement...</span>
+            </div>
+            <div v-else-if="notificationStore.recentUnreadNotifications.length === 0" class="notification-empty">
+              Aucune nouvelle notification
+            </div>
+            <div v-else class="notification-list">
+              <template v-for="notif in notificationStore.recentUnreadNotifications" :key="notif.id">
+                <div v-if="notif.type === 'FOLLOW'" class="notification-item follow-request">
+                  <div class="notification-avatar">
+                    <img v-if="notif.user?.avatar || notif.user?.imagePath" :src="getFullImageUrl(notif.user.avatar || notif.user.imagePath)" alt="Avatar" />
+                    <div v-else class="default-avatar">{{ notif.user?.firstName?.[0] || 'U' }}</div>
+                  </div>
+                  <div class="notification-content">
+                    <div class="notification-text">
+                      <strong>{{ notif.user?.nickname || notif.user?.firstName || 'Utilisateur' }}</strong> souhaite vous suivre
+                    </div>
+                    <div class="notification-time">{{ notificationStore.formatNotificationTime(notif.createdAt || notif.timestamp) }}</div>
+                    <div class="notification-actions">
+                      <button 
+                        @click="notificationStore.respondToFollowRequest(notif.id, 'ACCEPT')" 
+                        class="accept-btn"
+                        :disabled="notificationStore.isProcessing(notif.id)"
+                      >
+                        <span v-if="notificationStore.isProcessing(notif.id)" class="loading-spinner-xs"></span>
+                        {{ notificationStore.isProcessing(notif.id) ? 'En cours...' : 'Accepter' }}
+                      </button>
+                      <button 
+                        @click="notificationStore.respondToFollowRequest(notif.id, 'DECLINE')" 
+                        class="decline-btn"
+                        :disabled="notificationStore.isProcessing(notif.id)"
+                      >
+                        {{ notificationStore.isProcessing(notif.id) ? 'En cours...' : 'Refuser' }}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                <div v-else-if="notif.type === 'GROUP_INVITE'" class="notification-item group-invite">
+                  <div class="notification-avatar">
+                    <UserGroupIcon class="icon-sm" />
+                  </div>
+                  <div class="notification-content">
+                    <div class="notification-text">
+                      <strong>{{ notif.user?.nickname || notif.user?.firstName || 'Utilisateur' }}</strong> vous invite à rejoindre le groupe <strong>{{ notif.group?.name || 'Groupe' }}</strong>
+                    </div>
+                    <div class="notification-time">{{ notificationStore.formatNotificationTime(notif.createdAt || notif.timestamp) }}</div>
+                    <div class="notification-actions">
+                      <button 
+                        @click="notificationStore.respondToGroupInvite(notif.id, 'ACCEPT')" 
+                        class="accept-btn"
+                        :disabled="notificationStore.isProcessing(notif.id)"
+                      >
+                        <span v-if="notificationStore.isProcessing(notif.id)" class="loading-spinner-xs"></span>
+                        {{ notificationStore.isProcessing(notif.id) ? 'En cours...' : 'Rejoindre' }}
+                      </button>
+                      <button 
+                        @click="notificationStore.respondToGroupInvite(notif.id, 'DECLINE')" 
+                        class="decline-btn"
+                        :disabled="notificationStore.isProcessing(notif.id)"
+                      >
+                        {{ notificationStore.isProcessing(notif.id) ? 'En cours...' : 'Refuser' }}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                <div v-else-if="notif.type === 'GROUP_REQUEST'" class="notification-item group-request">
+                  <div class="notification-avatar">
+                    <UserGroupIcon class="icon-sm" />
+                  </div>
+                  <div class="notification-content">
+                    <div class="notification-text">
+                      <strong>{{ notif.user?.nickname || notif.user?.firstName || 'Utilisateur' }}</strong> demande à rejoindre votre groupe <strong>{{ notif.group?.name || 'Groupe' }}</strong>
+                    </div>
+                    <div class="notification-time">{{ notificationStore.formatNotificationTime(notif.createdAt || notif.timestamp) }}</div>
+                    <div class="notification-actions">
+                      <button 
+                        @click="notificationStore.respondToGroupRequest(notif.id, 'ACCEPT', notif.group?.id)" 
+                        class="accept-btn"
+                        :disabled="notificationStore.isProcessing(notif.id)"
+                      >
+                        <span v-if="notificationStore.isProcessing(notif.id)" class="loading-spinner-xs"></span>
+                        {{ notificationStore.isProcessing(notif.id) ? 'En cours...' : 'Accepter' }}
+                      </button>
+                      <button 
+                        @click="notificationStore.respondToGroupRequest(notif.id, 'DECLINE', notif.group?.id)" 
+                        class="decline-btn"
+                        :disabled="notificationStore.isProcessing(notif.id)"
+                      >
+                        {{ notificationStore.isProcessing(notif.id) ? 'En cours...' : 'Refuser' }}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                <div v-else-if="notif.type === 'EVENT'"
+                      class="notification-item event-notification"
+                     @click="notificationStore.markAsReadOnView(notif.id)">
+                  <div class="notification-avatar">
+                    <CalendarIcon class="icon-sm" />
+                  </div>
+                  <div class="notification-content">
+                    <div class="notification-text">
+                      Nouvel événement <strong>{{ notif.event?.title || 'Événement' }}</strong> dans le groupe <strong>{{ notif.group?.name || 'Groupe' }}</strong>
+                    </div>
+                    <div class="notification-time">{{ notificationStore.formatNotificationTime(notif.createdAt || notif.timestamp) }}</div>
+                  </div>
+                  <div v-if="!notif.read" class="unread-indicator"></div>
+                </div>
+              </template>
+            </div>
+            <div class="notification-footer">
+              <button @click="navigateTo('/notifications'); showNotificationDropdown = false">Voir toutes les notifications</button>
+            </div>
+          </div>
         </div>
         
         <button class="nav-icon-btn nav-chat-icon" @click="navigateTo('/chat')">
@@ -206,14 +332,21 @@ export default {
     const currentUser = computed(() => userStore.user)
     const currentRoute = computed(() => route.path)
     
-    async function navigateTo(path) {
-      if (path === '/notifications') {
-        showNotificationDropdown.value = !showNotificationDropdown.value
-        if (showNotificationDropdown.value) {
-          await notificationStore.fetchNotifications()
-        }
-      } else {
+    function navigateTo(path) {
         router.push(path)
+    }
+    
+    async function toggleNotificationDropdown() {
+      showNotificationDropdown.value = !showNotificationDropdown.value
+      if (showNotificationDropdown.value) {
+        await notificationStore.fetchNotifications()
+      }
+    }
+    
+    function handleClickOutside(event) {
+      const notificationWrapper = document.querySelector('.notification-wrapper');
+      if (notificationWrapper && !notificationWrapper.contains(event.target)) {
+        showNotificationDropdown.value = false;
       }
     }
 
@@ -226,6 +359,7 @@ export default {
       } catch (error) {
         console.error('Error during logout:', error);
       } finally {
+        userStore.logout()
         router.push('/login');
       }
     }
@@ -289,11 +423,13 @@ export default {
       } catch (error) {
         console.error('Error in MainLayout mount:', error)
       }
+      document.addEventListener('click', handleClickOutside);
     })
 
     onUnmounted(() => {
       if (removeWebSocketListener) removeWebSocketListener();
       clearTimeout(searchTimeout);
+      document.removeEventListener('click', handleClickOutside);
     })
 
     return {
@@ -307,6 +443,7 @@ export default {
       userStore,
       notificationStore,
       navigateTo,
+      toggleNotificationDropdown,
       logout,
       searchProfiles,
       onSearchInput,
@@ -421,6 +558,133 @@ export default {
 .profile-avatar-img { width: 100%; height: 100%; object-fit: cover; }
 .profile-avatar-initial { font-weight: bold; font-size: 14px; color: black; }
 .dropdown-icon { display: none; } /* Hidden for simplicity */
+
+/* --- Notification Dropdown --- */
+.notification-wrapper {
+  position: relative;
+}
+
+.notification-dropdown {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  width: 380px;
+  max-height: 450px;
+  background: rgba(25, 25, 35, 0.98);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(20px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  z-index: 1100;
+}
+
+.notification-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.notification-header h3 {
+  color: #fff;
+  margin: 0;
+  font-size: 1rem;
+}
+
+.mark-all-read {
+  background: none;
+  border: none;
+  color: #78c7ff;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.notification-loading,
+.notification-empty {
+  text-align: center;
+  padding: 20px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.notification-list {
+  flex-grow: 1;
+  overflow-y: auto;
+}
+
+.notification-item {
+  display: flex;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  transition: background 0.2s;
+}
+
+.notification-item:hover {
+  background: rgba(232, 121, 198, 0.1);
+}
+
+.notification-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #e879c6, #78c7ff);
+}
+.notification-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.notification-avatar .icon-sm { width: 20px; height: 20px; color: #fff; }
+
+.notification-content {
+  flex-grow: 1;
+}
+
+.notification-text {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: 4px;
+}
+
+.notification-time {
+  font-size: 0.75rem;
+  color: #78c7ff;
+}
+
+.notification-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+.notification-actions .accept-btn,
+.notification-actions .decline-btn {
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: bold;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+.notification-actions .accept-btn { background: #10b981; color: #fff; }
+.notification-actions .decline-btn { background: #374151; color: #d1d5db; }
+
+.notification-footer {
+  padding: 12px 16px;
+  text-align: center;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+.notification-footer button {
+  background: none;
+  border: none;
+  color: #78c7ff;
+  font-weight: bold;
+  cursor: pointer;
+}
 
 /* --- Desktop Sidebar --- */
 .sidebar {
