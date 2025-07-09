@@ -282,7 +282,7 @@ const sendMessage = async () => {
     const data = await response.json();
 
     if (data.type === "Success") {
-        chatStore.addNewChatMessage({ ...msgObj, sender: { nickname: currentUser.value.nickname } });
+        // chatStore.addNewChatMessage({ ...msgObj, sender: { nickname: currentUser.value.nickname } }); // REMOVE THIS LINE
         newMessage.value = '';
         showEmojis.value = false;
         scrollToBottom();
