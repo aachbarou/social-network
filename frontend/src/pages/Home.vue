@@ -15,13 +15,14 @@
                alt="Avatar" />
           <span v-else>{{ userStore.user?.nickname?.slice(0, 2).toUpperCase() || 'VU' }}</span>
         </div>
-        <input 
-          type="text" 
-          placeholder="Quoi de neuf aujourd'hui ?" 
-          class="create-post-input"
-          v-model="newPostContent"
-          @click="showCreatePost = true"
-        />
+        <textarea
+  placeholder="Quoi de neuf aujourd'hui ?"
+  class="create-post-input"
+  v-model="newPostContent"
+  @focus="showCreatePost = true"
+  rows="1"
+  style="resize: vertical;"
+></textarea>
 
       </div>
       <div class="create-post-actions" v-if="showCreatePost">
@@ -551,6 +552,7 @@ export default {
   color: rgba(255, 255, 255, 0.8);
   line-height: 1.6;
   margin: 0 0 15px 0;
+  white-space: pre-line;
 }
 
 .post-image {
