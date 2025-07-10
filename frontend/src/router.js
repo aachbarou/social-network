@@ -9,6 +9,7 @@ import Notifications from './pages/Notifications.vue';
 import Chat from './pages/Chat.vue';
 import Home from './pages/Home.vue';
 import MainLayout from './components/MainLayout.vue';
+import NotFound from './pages/NotFound.vue';
 
 const routes = [
   { path: '/login', name: 'Login', component: Login },
@@ -24,9 +25,13 @@ const routes = [
       { path: 'groups', name: 'Groups', component: Groups },
       { path: 'group/:id', name: 'GroupView', component: GroupView },
       { path: 'notifications', name: 'Notifications', component: Notifications },
-      { path: 'chat', name: 'Chat', component: Chat }
+      { path: 'chat', name: 'Chat', component: Chat },
+      // 404 page for authenticated users (inside MainLayout)
+      { path: ':pathMatch(.*)*', name: 'NotFoundAuth', component: NotFound }
     ]
-  }
+  },
+  // 404 page for unauthenticated users (standalone)
+  { path: '/:pathMatch(.*)*', name: 'NotFound', component: NotFound }
 ];
 
 const router = createRouter({
@@ -37,6 +42,12 @@ const router = createRouter({
 router.beforeEach(async (to, from, next) => {
   const publicPages = ['/login', '/register'];
   const isPublicPage = publicPages.includes(to.path);
+  const is404Page = to.name === 'NotFound' || to.name === 'NotFoundAuth';
+
+  // Allow access to 404 pages without authentication check
+  if (is404Page) {
+    return next();
+  }
 
   // Check user authentication status
   try {
