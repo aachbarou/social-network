@@ -90,10 +90,7 @@
                   <Clock class="btn-icon" />
                   Request Sent
                 </span>
-                <button class="btn-message">
-                  <Mail class="btn-icon" />
-                  Message
-                </button>
+                
               </div>
               
               <!-- For own profile -->

@@ -120,7 +120,7 @@
                     </div>
                     <div class="comment-meta">
                       <h4 class="comment-user">
-                        {{ comment.userName || comment.author?.nickname || 'Utilisateur' }}
+                        {{ comment.userName || comment.author?.nickname || comment.author?.firstName || 'Utilisateur' }}
                       </h4>
                       <span class="comment-time">
                         {{ isValidDate(comment.createdAt) ? formatDate(comment.createdAt) : '' }}
