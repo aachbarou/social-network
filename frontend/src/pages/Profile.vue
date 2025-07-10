@@ -54,9 +54,7 @@
                     </div>
                   </div>
                 </div>
-                <button class="btn-edit-icon">
-                  <Settings class="btn-icon" />
-                </button>
+                
               </div>
             </div>
 
@@ -197,9 +195,7 @@
                         <span class="post-time">{{ post.timeAgo }}</span>
                       </div>
                     </div>
-                    <button class="post-menu-btn">
-                      <MoreHorizontal :size="20" />
-                    </button>
+                  
                   </div>
                   <div class="post-content">
                     <p>{{ post.content }}</p>
@@ -303,7 +299,7 @@
                 <h4>{{ follower.nickname || follower.firstName }}</h4>
                 <p>{{ follower.firstName }} {{ follower.lastName }}</p>
               </div>
-              <button class="follow-btn">Follow</button>
+              
             </div>
           </div>
 
@@ -334,7 +330,7 @@
                 <h4>{{ following.nickname || following.firstName }}</h4>
                 <p>{{ following.firstName }} {{ following.lastName }}</p>
               </div>
-              <button class="following-btn">Following</button>
+             
             </div>
           </div>
         </div>

@@ -15,7 +15,6 @@
         :is-admin="groupStore.isCurrentUserAdmin"
         @join="handleJoinGroup"
         @leave="showLeaveConfirmation"
-        @chat="openChat"
         @invite="showInviteModal = true"
       />
 
@@ -174,10 +173,6 @@ const handleLeaveGroup = async () => {
     
     // Don't close the modal, keep it open to show the error
   }
-}
-
-const openChat = () => {
-  alert(`Chat du groupe ${groupStore.currentGroup.name} - Fonctionnalité à implémenter`)
 }
 
 const handleUsersInvited = (count) => {

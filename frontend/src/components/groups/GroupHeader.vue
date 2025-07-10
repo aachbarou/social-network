@@ -27,7 +27,6 @@
           :is-admin="isAdmin"
           @join="$emit('join')"
           @leave="$emit('leave')"
-          @chat="$emit('chat')"
           @invite="$emit('invite')"
         />
       </div>
@@ -55,7 +54,7 @@ const props = defineProps({
   }
 })
 
-defineEmits(['join', 'leave', 'chat', 'invite'])
+defineEmits(['join', 'leave', 'invite'])
 
 const bannerStyle = computed(() => {
   if (props.group.image) {

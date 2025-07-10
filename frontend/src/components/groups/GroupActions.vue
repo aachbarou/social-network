@@ -24,16 +24,6 @@
       Demande envoyée
     </div>
     
-    <!-- Chat button for members -->
-    <button 
-      v-if="isMember || isAdmin"
-      @click="$emit('chat')" 
-      class="action-badge chat-action"
-    >
-      <MessageCircle :size="18" />
-      Chat
-    </button>
-
     <!-- Invite button for members -->
     <button 
       v-if="isMember || isAdmin"
@@ -72,7 +62,6 @@ import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { 
   Plus, 
-  MessageCircle, 
   LogOut, 
   ArrowLeft, 
   Loader2,
@@ -97,7 +86,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['join', 'leave', 'chat', 'invite'])
+const emit = defineEmits(['join', 'leave', 'invite'])
 
 const isJoining = ref(false)
 const isLeaving = ref(false)

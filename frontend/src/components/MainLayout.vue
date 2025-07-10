@@ -225,19 +225,6 @@
           <span>Messages</span>
         </button>
       </div>
-      
-      <div class="sidebar-section">
-        <div class="sidebar-section-title">Raccourcis</div>
-        <button class="sidebar-item">
-          <HeartIcon />
-          <span>Favoris</span>
-        </button>
-        
-        <button class="sidebar-item">
-          <DocumentDuplicateIcon />
-          <span>Pages</span>
-        </button>
-      </div>
 
       <div class="sidebar-footer">
         <button class="sidebar-item logout-btn" @click="logout">

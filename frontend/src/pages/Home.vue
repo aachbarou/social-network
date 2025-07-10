@@ -88,9 +88,7 @@
                   <span class="post-time">{{ post.timeAgo }}</span>
                 </div>
               </div>
-              <button class="post-menu-btn">
-                <MoreHorizontal :size="20" />
-              </button>
+              
             </div>
             <div class="post-content">
               <p>{{ post.content }}</p>
