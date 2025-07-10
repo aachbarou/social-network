@@ -13,7 +13,7 @@
           <MagnifyingGlassIcon class="search-icon" />
           <input
             type="text"
-            placeholder="Rechercher..."
+            :placeholder="getSearchPlaceholder()"
             v-model="searchQuery"
             @keyup.enter="searchProfiles"
             @input="onSearchInput"
@@ -396,6 +396,16 @@ export default {
       searchQuery.value = '';
     }
 
+    function getSearchPlaceholder() {
+      if (window.innerWidth <= 480) {
+        return "Recherche...";
+      } else if (window.innerWidth <= 768) {
+        return "Rechercher...";
+      } else {
+        return "Rechercher des utilisateurs...";
+      }
+    }
+
     onMounted(async () => {
       try {
         await userStore.reloadUserAfterRefresh()
@@ -436,8 +446,10 @@ export default {
       onSearchInput,
       goToProfile,
       getFullImageUrl,
+      getSearchPlaceholder,
       isLoggedIn,
-      currentUser
+      currentUser,
+      getSearchPlaceholder
     }
   }
 }
@@ -766,11 +778,69 @@ export default {
 @media (max-width: 768px) {
   .sidebar { display: none; }
   .main-content { margin-left: 0; width: 100%; padding-bottom: 60px; /* Space for bottom nav */ }
-  .navbar-center { display: none; }
+  
+  /* Keep search bar visible but make it more compact */
+  .navbar {
+    padding: 0 10px;
+  }
+  
+  .navbar-center { 
+    flex: 1;
+    margin: 0 10px;
+    max-width: none;
+  }
+  
   .navbar-title { display: none; }
+  .logo-image { width: 28px; height: 28px; }
+  
+  .search-bar input {
+    padding: 6px 12px 6px 35px;
+    font-size: 0.85rem;
+    border-radius: 20px;
+    min-height: 32px;
+  }
+  
+  .search-icon {
+    left: 12px;
+    width: 16px;
+    height: 16px;
+  }
+  
   .desktop-logout { display: none; }
   .nav-chat-icon { display: none; }
   .bottom-nav { display: flex; }
+}
+
+@media (max-width: 480px) {
+  .navbar {
+    padding: 0 8px;
+  }
+  
+  .navbar-center {
+    margin: 0 8px;
+  }
+  
+  .search-bar input {
+    padding: 5px 10px 5px 30px;
+    font-size: 0.8rem;
+  }
+  
+  .search-icon {
+    left: 10px;
+    width: 14px;
+    height: 14px;
+  }
+  
+  .nav-icon-btn {
+    width: 36px;
+    height: 36px;
+    padding: 6px;
+  }
+  
+  .nav-icon-btn .icon {
+    width: 18px;
+    height: 18px;
+  }
 }
 
 .search-results-dropdown {
@@ -785,7 +855,38 @@ export default {
   max-height: 300px;
   overflow-y: auto;
   border: 1px solid rgba(255,255,255,0.1);
+  backdrop-filter: blur(20px);
 }
+
+@media (max-width: 768px) {
+  .search-results-dropdown {
+    max-height: 250px;
+    border-radius: 8px;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.3);
+  }
+}
+
+@media (max-width: 480px) {
+  .search-results-dropdown {
+    max-height: 200px;
+    border-radius: 6px;
+  }
+  
+  .search-result-item {
+    padding: 8px;
+    gap: 8px;
+  }
+  
+  .search-result-avatar {
+    width: 28px;
+    height: 28px;
+  }
+  
+  .search-result-name {
+    font-size: 0.85rem;
+  }
+}
+
 .search-result-item {
   display: flex;
   align-items: center;
