@@ -180,32 +180,55 @@ func (handler *Handler) GetFollowing(w http.ResponseWriter, r *http.Request) {
 
 func (handler *Handler) Follow(wsServer *ws.Server, w http.ResponseWriter, r *http.Request) {
 	w = utils.ConfigHeader(w)
-	// access user id
 	currentUserId := r.Context().Value(utils.UserKey).(string)
-	// get status from request
 	query := r.URL.Query()
 	reqUserId := query.Get("userId")
-	/* ----------------- safety check -> if request already made ---------------- */
+
+	// check if already following
 	alreadyFollowing, _ := handler.repos.UserRepo.IsFollowing(reqUserId, currentUserId)
 	if alreadyFollowing {
 		utils.RespondWithError(w, "User already is following", 200)
 		return
 	}
-	// get target user profile status -> public or private
+
+	// check target user status
 	reqUserStatus, err := handler.repos.UserRepo.GetStatus(reqUserId)
 	if err != nil {
 		utils.RespondWithError(w, "Error on getting data", 200)
 		return
 	}
+
 	if reqUserStatus == "PUBLIC" {
-		// SAVE AS FOLLOWER
+		// add follow
 		err := handler.repos.UserRepo.SaveFollower(reqUserId, currentUserId)
 		if err != nil {
 			utils.RespondWithError(w, "Error on saving follower", 200)
 			return
 		}
+
+		// add notification
+		notification := models.Notification{
+			ID:       utils.UniqueId(),
+			Type:     "FOLLOW",
+			TargetID: reqUserId,
+			Content:  currentUserId,
+			Sender:   currentUserId,
+		}
+		err = handler.repos.NotifRepo.Save(notification)
+		if err != nil {
+			utils.RespondWithError(w, "Error on saving notification", 200)
+			return
+		}
+
+		// Send notification if the recipient is connected via WebSocket
+		for client := range wsServer.Clients {
+			if client.ID == reqUserId {
+				client.SendNotification(notification)
+			}
+		}
+
 	} else if reqUserStatus == "PRIVATE" {
-		// Vérifier si une demande de suivi est déjà en attente
+		// Check if there is an old follow request.
 		notification := models.Notification{
 			Type:     "FOLLOW",
 			TargetID: reqUserId,
@@ -221,21 +244,23 @@ func (handler *Handler) Follow(wsServer *ws.Server, w http.ResponseWriter, r *ht
 			utils.RespondWithError(w, "Demande déjà envoyée", 200)
 			return
 		}
-		// SAVE IN NOTIFICATIONS as pending folllow request
+
+		// Create a follow-up request notification
 		notification.ID = utils.UniqueId()
 		err = handler.repos.NotifRepo.Save(notification)
 		if err != nil {
 			utils.RespondWithError(w, "Error on save", 200)
 			return
 		}
-		// if user online send notification about follow request
+
+		// Create a follow-up request notification
 		for client := range wsServer.Clients {
 			if client.ID == reqUserId {
 				client.SendNotification(notification)
 			}
 		}
-
 	}
+
 	utils.RespondWithSuccess(w, "Following successful", 200)
 }
 
