@@ -206,27 +206,6 @@ func (handler *Handler) Follow(wsServer *ws.Server, w http.ResponseWriter, r *ht
 			return
 		}
 
-		// add notification
-		notification := models.Notification{
-			ID:       utils.UniqueId(),
-			Type:     "FOLLOW",
-			TargetID: reqUserId,
-			Content:  currentUserId,
-			Sender:   currentUserId,
-		}
-		err = handler.repos.NotifRepo.Save(notification)
-		if err != nil {
-			utils.RespondWithError(w, "Error on saving notification", 200)
-			return
-		}
-
-		// Send notification if the recipient is connected via WebSocket
-		for client := range wsServer.Clients {
-			if client.ID == reqUserId {
-				client.SendNotification(notification)
-			}
-		}
-
 	} else if reqUserStatus == "PRIVATE" {
 		// Check if there is an old follow request.
 		notification := models.Notification{
@@ -348,9 +327,12 @@ func (handler *Handler) ResponseFollowRequest(w http.ResponseWriter, r *http.Req
 /* -------------------------------------------------------------------------- */
 func (handler *Handler) ChatList(w http.ResponseWriter, r *http.Request) {
 	w = utils.ConfigHeader(w)
-	// get userId from request
+	// get userId from request query, if not provided use current user from context
 	query := r.URL.Query()
 	userId := query.Get("userId")
+	if userId == "" {
+		userId = r.Context().Value(utils.UserKey).(string)
+	}
 	// request all  following users
 	followers, errUsers := handler.repos.UserRepo.GetFollowing(userId)
 	if errUsers != nil {

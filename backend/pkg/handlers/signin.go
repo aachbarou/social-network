@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"time"
 
@@ -27,25 +26,19 @@ func (handler *Handler) Signin(w http.ResponseWriter, r *http.Request) {
 	var client models.User
 	err := json.NewDecoder(r.Body).Decode(&client)
 	if err != nil {
-		fmt.Println("arrrrrrrrr", err)
 		utils.RespondWithError(w, "Error on form submittion", 400)
 		return
 	}
-	fmt.Println(client)
 	/* --------------------------- validate user in db -------------------------- */
 	// find user with email in db (need Password and user_id)
 	dbUser, errDb := handler.repos.UserRepo.FindUserByEmail(client.Email)
 	if errDb != nil {
-		fmt.Println("db", errDb)
 		utils.RespondWithError(w, "Wrong credentials", 401)
 		return
 	}
-	fmt.Println("dbUser.Password:", dbUser.Password)
-	fmt.Println("client.Password:", client.Password)
 	// Compare passwords
 	errPwd := bcrypt.CompareHashAndPassword([]byte(dbUser.Password), []byte(client.Password))
 	if errPwd != nil {
-		fmt.Println("errPwd", errPwd)
 		utils.RespondWithError(w, "Wrong credentials", 401)
 		return
 	}
@@ -88,7 +81,6 @@ func (handler *Handler) SessionActive(w http.ResponseWriter, r *http.Request) {
 	}
 	// check if session not expired
 	sessionValid := utils.CheckSessionExpiration(session)
-	fmt.Printf("daz", sessionValid)
 	if !sessionValid {
 
 		// if not valid any more delete from db
