@@ -1,1 +1,1 @@
-ALTER TABLE groups ADD COLUMN privacy TEXT(255) DEFAULT 'public';
+ALTER TABLE groups ADD COLUMN privacy TEXT DEFAULT 'public';

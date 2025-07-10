@@ -4,11 +4,11 @@ CREATE TABLE IF NOT EXISTS users (
     "email" TEXT not null,
     "first_name" TEXT not null,
     "last_name" TEXT not null,
-    "nickname" TEXT(255) null,
+    "nickname" TEXT null,
     "birthday" datetime not null,
-    "image" TEXT(255) null,
+    "image" TEXT null,
     "about" TEXT null,
-    "status" TEXT(255) not null default PUBLIC,
-    "password" TEXT(255) not null,
+    "status" TEXT not null default PUBLIC,
+    "password" TEXT not null,
     primary key ("user_id")
 );
