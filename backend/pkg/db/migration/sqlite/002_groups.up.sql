@@ -1,7 +1,7 @@
 CREATE TABLE IF NOT EXISTS groups (
-    "group_id" VARCHAR(255) not null,
-    "administrator" VARCHAR(255) not null,
-    "name" VARCHAR(255) not null,
-    "description" VARCHAR(255) null,
+    "group_id" TEXT not null,
+    "administrator" TEXT not null,
+    "name" TEXT not null,
+    "description" TEXT null,
     primary key ("group_id")
 );
