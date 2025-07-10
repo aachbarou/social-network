@@ -61,10 +61,6 @@
             <!-- Stats Row -->
             <div class="profile-stats">
               <div class="stat-item">
-                <span class="stat-number">{{ visiblePostsCount }}</span>
-                <span class="stat-label">Posts</span>
-              </div>
-              <div class="stat-item">
                 <span class="stat-number">{{ visibleFollowersCount }}</span>
                 <span class="stat-label">Followers</span>
               </div>

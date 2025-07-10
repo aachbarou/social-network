@@ -53,15 +53,6 @@ export const useFollowStore = defineStore('follow', () => {
         credentials: 'include'
       })
       const result = await res.json()
-      
-      // If follow was successful, trigger posts refresh to show new posts
-      if (res.ok && result.type === 'Success') {
-        // Import and use posts store to refresh the feed
-        const { useMainStore } = await import('./postsStore')
-        const postsStore = useMainStore()
-        await postsStore.fetchPosts()
-      }
-      
       return result      
     } catch (e) {
       return { error: 'Erreur réseau' }
@@ -76,15 +67,6 @@ export const useFollowStore = defineStore('follow', () => {
         credentials: 'include'
       })
      const result = await res.json()
-      
-      // If unfollow was successful, trigger posts refresh
-      if (res.ok && result.type === 'Success') {
-        // Import and use posts store to refresh the feed
-        const { useMainStore } = await import('./postsStore')
-        const postsStore = useMainStore()
-        await postsStore.fetchPosts()
-      }
-      
       return result    } catch (e) {
       return { error: 'Erreur réseau' }
     }
@@ -115,15 +97,13 @@ export const useFollowStore = defineStore('follow', () => {
       })
       const result = await res.json()
       
-      // If follow request was accepted, refresh posts to show new posts
-      if (res.ok && result.type === 'Success' && response === 'ACCEPT') {
-        // Import and use posts store to refresh the feed
-        const { useMainStore } = await import('./postsStore')
-        const postsStore = useMainStore()
-        await postsStore.fetchPosts()
+      if (res.ok && result.type === 'Success') {
+        // Remove the follow request from local state regardless of accept/decline
+        followRequests.value = followRequests.value.filter(req => req.id !== requestId)
       }
       
-      return result    } catch (e) {
+      return result
+    } catch (e) {
       return { error: 'Erreur réseau' }
     }
   }

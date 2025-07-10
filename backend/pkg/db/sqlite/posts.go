@@ -24,11 +24,18 @@ func (repo *PostRepository) GetAll(userID string) ([]models.Post, error) {
 		  AND (
 			visibility = 'PUBLIC'
 			OR (visibility = 'ALMOST_PRIVATE' AND (SELECT COUNT(*) FROM almost_private WHERE almost_private.post_id = posts.post_id AND almost_private.user_id = ?) = 1)
-			OR (visibility = 'PRIVATE' AND (SELECT COUNT(*) FROM private_post_access WHERE private_post_access.post_id = posts.post_id AND private_post_access.user_id = ?) = 1)
+			OR (visibility = 'PRIVATE' 
+				AND (SELECT COUNT(*) FROM private_post_access WHERE private_post_access.post_id = posts.post_id AND private_post_access.user_id = ?) = 1
+				AND (
+					created_by = ?
+					OR (SELECT COUNT(*) FROM followers WHERE followers.user_id = posts.created_by AND follower_id = ?) = 1
+					OR (SELECT status FROM users WHERE user_id = posts.created_by) = 'public'
+				)
+			)
 			OR created_by = ?
 		  )
 		ORDER BY created_at DESC;
-	`, userID, userID, userID)
+	`, userID, userID, userID, userID, userID)
 	if err != nil {
 		return posts, err
 	}
@@ -49,11 +56,18 @@ func (repo *PostRepository) GetUserPosts(userID, currentUserID string) ([]models
 		  AND (
 			visibility = 'PUBLIC'
 			OR (visibility = 'ALMOST_PRIVATE' AND (SELECT COUNT(*) FROM almost_private WHERE almost_private.post_id = posts.post_id AND almost_private.user_id = ?) = 1)
-			OR (visibility = 'PRIVATE' AND (SELECT COUNT(*) FROM private_post_access WHERE private_post_access.post_id = posts.post_id AND private_post_access.user_id = ?) = 1)
+			OR (visibility = 'PRIVATE' 
+				AND (SELECT COUNT(*) FROM private_post_access WHERE private_post_access.post_id = posts.post_id AND private_post_access.user_id = ?) = 1
+				AND (
+					? = ?
+					OR (SELECT COUNT(*) FROM followers WHERE followers.user_id = ? AND follower_id = ?) = 1
+					OR (SELECT status FROM users WHERE user_id = ?) = 'public'
+				)
+			)
 			OR ? = ?
 		  )
 		ORDER BY created_at DESC;
-	`, userID, currentUserID, currentUserID, userID, currentUserID)
+	`, userID, currentUserID, currentUserID, currentUserID, userID, userID, currentUserID, userID, currentUserID, userID)
 	if err != nil {
 		return posts, err
 	}
