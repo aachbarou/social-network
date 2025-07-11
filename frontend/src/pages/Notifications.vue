@@ -279,3 +279,88 @@ onUnmounted(() => {
   if (removeWebSocketListener) removeWebSocketListener()
 })
 </script>
+<style scoped>
+/* --- Global Card Style Reuse --- */
+.notification-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.notification-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
+}
+
+/* --- Enhanced Default Avatar --- */
+.default-avatar {
+  background: linear-gradient(135deg, #3b3c5c, #4b4e7c);
+  color: white;
+  font-size: 20px;
+  font-weight: bold;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* --- Enhanced Section Titles --- */
+.notification-section h2 {
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+/* --- Empty State Styling --- */
+.empty-state {
+  color: #aaa;
+  background: #1e1e2e;
+  border: 1px dashed #444;
+  border-radius: 12px;
+  padding: 2rem;
+  margin: 2rem 0;
+  font-style: italic;
+  font-size: 15px;
+}
+
+/* --- Error Animation (Optional) --- */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-4px); }
+  40%, 80% { transform: translateX(4px); }
+}
+
+.error-banner {
+  animation: shake 0.3s ease-in-out;
+}
+
+/* --- New Responsive Utility --- */
+@media (max-width: 600px) {
+  .notifications-page {
+    padding: 1rem;
+  }
+
+  .notification-card {
+    padding: 1rem;
+  }
+
+  .notification-title {
+    font-size: 14px;
+  }
+
+  .notification-subtitle,
+  .notification-date,
+  .notification-time {
+    font-size: 12px;
+  }
+
+  .notification-actions {
+    flex-direction: column;
+    align-items: flex-end;
+  }
+
+  .notification-actions button {
+    width: 100%;
+  }
+}
+
+</style>
