@@ -11,8 +11,8 @@ type NotifRepository struct {
 }
 
 func (repo *NotifRepository) Save(n models.Notification) error {
-	stmt, err := repo.DB.Prepare(`INSERT INTO notifications 
-		(notif_id, user_id, type, content, sender) 
+	stmt, err := repo.DB.Prepare(`
+		INSERT INTO notifications (notif_id, user_id, type, content, sender) 
 		VALUES (?, ?, ?, ?, ?)`)
 	if err != nil {
 		return err
@@ -28,7 +28,9 @@ func (repo *NotifRepository) Delete(notificationId string) error {
 }
 
 func (repo *NotifRepository) DeleteByType(n models.Notification) error {
-	_, err := repo.DB.Exec(`DELETE FROM notifications WHERE user_id = ? AND type = ? AND content = ?`, n.TargetID, n.Type, n.Content)
+	_, err := repo.DB.Exec(`
+		DELETE FROM notifications 
+		WHERE user_id = ? AND type = ? AND content = ?`, n.TargetID, n.Type, n.Content)
 	return err
 }
 
@@ -81,7 +83,8 @@ func (repo *NotifRepository) DeleteGroupInvite(userId, groupId string) error {
 func (repo *NotifRepository) GetUserFromRequest(notificationId string) (string, error) {
 	var userId string
 	err := repo.DB.QueryRow(`
-		SELECT content FROM notifications WHERE notif_id = ?`, notificationId).Scan(&userId)
+		SELECT content FROM notifications 
+		WHERE notif_id = ?`, notificationId).Scan(&userId)
 	return userId, err
 }
 
@@ -96,7 +99,8 @@ func (repo *NotifRepository) CheckIfExists(n models.Notification) (bool, error) 
 func (repo *NotifRepository) GetGroupId(notificationId string) (string, error) {
 	var groupId string
 	err := repo.DB.QueryRow(`
-		SELECT content FROM notifications WHERE notif_id = ?`, notificationId).Scan(&groupId)
+		SELECT content FROM notifications 
+		WHERE notif_id = ?`, notificationId).Scan(&groupId)
 	return groupId, err
 }
 
@@ -124,7 +128,9 @@ func (repo *NotifRepository) GetAll(userId string) ([]models.Notification, error
 func (repo *NotifRepository) GetCahtNotifById(notificationId string) (models.Notification, error) {
 	var n models.Notification
 	err := repo.DB.QueryRow(`
-		SELECT content, user_id, sender FROM notifications WHERE notif_id = ?`, notificationId).Scan(&n.Content, &n.TargetID, &n.Sender)
+		SELECT content, user_id, sender 
+		FROM notifications 
+		WHERE notif_id = ?`, notificationId).Scan(&n.Content, &n.TargetID, &n.Sender)
 	return n, err
 }
 
@@ -146,12 +152,16 @@ func (repo *NotifRepository) GetContentFromChatRequest(senderId, receiverId stri
 
 func (repo *NotifRepository) MarkAsRead(notificationId string) error {
 	_, err := repo.DB.Exec(`
-		UPDATE notifications SET read = TRUE WHERE notif_id = ?`, notificationId)
+		UPDATE notifications 
+		SET read = TRUE 
+		WHERE notif_id = ?`, notificationId)
 	return err
 }
 
 func (repo *NotifRepository) MarkAllAsRead(userId string) error {
 	_, err := repo.DB.Exec(`
-		UPDATE notifications SET read = TRUE WHERE user_id = ?`, userId)
+		UPDATE notifications 
+		SET read = TRUE 
+		WHERE user_id = ?`, userId)
 	return err
 }
