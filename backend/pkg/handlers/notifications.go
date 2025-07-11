@@ -3,21 +3,21 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
+
 	"social-network/pkg/utils"
 )
 
 func (handler *Handler) Notifications(w http.ResponseWriter, r *http.Request) {
 	w = utils.ConfigHeader(w)
-	// access user id
+
 	userId := r.Context().Value(utils.UserKey).(string)
 	notifs, err := handler.repos.NotifRepo.GetAll(userId)
 	if err != nil {
 		utils.RespondWithError(w, "Error on getting data", 200)
 		return
 	}
-	/* ------------------ populate additional notification data ----------------- */
+
 	for i := 0; i < len(notifs); i++ {
-		// get user || group || invite for notif
 		switch notifs[i].Type {
 		case "GROUP_INVITE":
 			notifs[i].Group, _ = handler.repos.GroupRepo.GetData(notifs[i].Content)
@@ -32,16 +32,15 @@ func (handler *Handler) Notifications(w http.ResponseWriter, r *http.Request) {
 			notifs[i].User, _ = handler.repos.UserRepo.GetDataMin(notifs[i].Content)
 			notifs[i].Group, _ = handler.repos.GroupRepo.GetData(notifs[i].TargetID)
 		}
-		// change msg
 		utils.DefineNotificationMsg(&notifs[i])
 	}
+
 	utils.RespondWithNotifications(w, notifs, 200)
 }
 
-// MarkNotificationAsRead marks a specific notification as read
 func (handler *Handler) MarkNotificationAsRead(w http.ResponseWriter, r *http.Request) {
 	w = utils.ConfigHeader(w)
-	
+
 	if r.Method != http.MethodPost {
 		utils.RespondWithError(w, "Method not allowed", 405)
 		return
@@ -70,16 +69,14 @@ func (handler *Handler) MarkNotificationAsRead(w http.ResponseWriter, r *http.Re
 	utils.RespondWithSuccess(w, "Notification marked as read", 200)
 }
 
-// MarkAllNotificationsAsRead marks all notifications for the current user as read
 func (handler *Handler) MarkAllNotificationsAsRead(w http.ResponseWriter, r *http.Request) {
 	w = utils.ConfigHeader(w)
-	
+
 	if r.Method != http.MethodPost {
 		utils.RespondWithError(w, "Method not allowed", 405)
 		return
 	}
 
-	// Get user ID from context
 	userId := r.Context().Value(utils.UserKey).(string)
 
 	err := handler.repos.NotifRepo.MarkAllAsRead(userId)
@@ -91,10 +88,9 @@ func (handler *Handler) MarkAllNotificationsAsRead(w http.ResponseWriter, r *htt
 	utils.RespondWithSuccess(w, "All notifications marked as read", 200)
 }
 
-// DismissNotification deletes a notification for the current user
 func (handler *Handler) DismissNotification(w http.ResponseWriter, r *http.Request) {
 	w = utils.ConfigHeader(w)
-	
+
 	if r.Method != http.MethodDelete {
 		utils.RespondWithError(w, "Method not allowed", 405)
 		return
