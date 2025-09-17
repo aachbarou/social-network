@@ -65,7 +65,7 @@ export default {
       errorMsg.value = ''
       try {
         // On envoie la requête de connexion au backend avec credentials: 'include'
-        const res = await fetch('http://localhost:8081/signin', {
+        const res = await fetch(`$${import.meta.env.VITE_API_BASE_URL}/signin`, {
           method: 'POST',
           credentials: 'include', // Important pour les cookies de session
           headers: { 'Content-Type': 'application/json' },
@@ -80,7 +80,7 @@ export default {
         if (res.ok && data.type === 'Success') {
           successMsg.value = 'Connexion réussie !'
           // Récupérer le profil utilisateur après login
-          const userRes = await fetch('http://localhost:8081/currentUser', {
+          const userRes = await fetch(`$${import.meta.env.VITE_API_BASE_URL}/currentUser`, {
             method: 'GET',
             credentials: 'include'
           })

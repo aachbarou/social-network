@@ -99,7 +99,7 @@ const processingRequests = ref([])
 const fetchGroupRequests = async () => {
   loading.value = true
   try {
-    const response = await fetch(`http://localhost:8081/groupRequests?groupId=${props.groupId}`, {
+    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/groupRequests?groupId=${props.groupId}`, {
       method: 'GET',
       credentials: 'include',
     })
@@ -131,7 +131,7 @@ const handleRequestResponse = async (requestId, action) => {
       response: action.toLowerCase() // Ensure lowercase
     }
     
-    const response = await fetch('http://localhost:8081/responseGroupRequest', {
+    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/responseGroupRequest`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -158,7 +158,7 @@ const handleRequestResponse = async (requestId, action) => {
 const getImageUrl = (imagePath) => {
   if (!imagePath) return null
   if (imagePath.startsWith('http')) return imagePath
-  return `http://localhost:8081/${imagePath}`
+  return `${import.meta.env.VITE_API_BASE_URL}/${imagePath}`
 }
 
 const handleImageError = (event) => {

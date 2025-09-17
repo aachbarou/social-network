@@ -35,7 +35,7 @@ export const useGroupStore = defineStore('group', () => {
     loading.value = true
     error.value = null
     try {
-      const response = await fetch('http://localhost:8081/allGroups', {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/allGroups`, {
         credentials: 'include'
       })
       if (response.ok) {
@@ -54,7 +54,7 @@ export const useGroupStore = defineStore('group', () => {
 
   const fetchUserGroups = async () => {
     try {
-      const response = await fetch('http://localhost:8081/userGroups', {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/userGroups`, {
         credentials: 'include'
       })
       if (response.ok) {
@@ -71,7 +71,7 @@ export const useGroupStore = defineStore('group', () => {
 
   const fetchPublicGroups = async () => {
     try {
-      const response = await fetch('http://localhost:8081/allGroups', {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/allGroups`, {
         credentials: 'include'
       })
       if (response.ok) {
@@ -88,7 +88,7 @@ export const useGroupStore = defineStore('group', () => {
 
   const fetchNotifications = async () => {
     try {
-      const response = await fetch('http://localhost:8081/notifications', {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/notifications`, {
         credentials: 'include'
       })
       if (response.ok) {
@@ -143,7 +143,7 @@ export const useGroupStore = defineStore('group', () => {
     loading.value = true
     error.value = null
     try {
-      const response = await fetch(`http://localhost:8081/groupInfo?groupId=${groupId}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/groupInfo?groupId=${groupId}`, {
         credentials: 'include'
       })
       if (response.ok) {
@@ -162,7 +162,7 @@ export const useGroupStore = defineStore('group', () => {
 
   const fetchGroupMembers = async (groupId) => {
     try {
-      const response = await fetch(`http://localhost:8081/groupMembers?groupId=${groupId}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/groupMembers?groupId=${groupId}`, {
         credentials: 'include'
       })
       if (response.ok) {
@@ -176,7 +176,7 @@ export const useGroupStore = defineStore('group', () => {
 
   const fetchGroupPosts = async (groupId) => {
     try {
-      const response = await fetch(`http://localhost:8081/groupPosts?groupId=${groupId}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/groupPosts?groupId=${groupId}`, {
         credentials: 'include'
       })
       if (response.ok) {
@@ -200,7 +200,7 @@ export const useGroupStore = defineStore('group', () => {
     lastFetchTime = now
     loading.value = true
     try {
-      const response = await fetch(`http://localhost:8081/getGroupEvents?groupId=${groupId}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/getGroupEvents?groupId=${groupId}`, {
         credentials: 'include'
       })
       if (response.ok) {
@@ -221,7 +221,7 @@ export const useGroupStore = defineStore('group', () => {
 
   const updateEventResponse = async (eventId, response) => {
     try {
-      const res = await fetch('http://localhost:8081/updateEventResponse', {
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/updateEventResponse`, {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
@@ -261,7 +261,7 @@ export const useGroupStore = defineStore('group', () => {
         formData.append('image', image)
       }
 
-      const response = await fetch('http://localhost:8081/newGroupPost', {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/newGroupPost`, {
         method: 'POST',
         credentials: 'include',
         body: formData
@@ -297,7 +297,7 @@ export const useGroupStore = defineStore('group', () => {
         formData.append('image', image)
       }
 
-      const response = await fetch('http://localhost:8081/newComment', {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/newComment`, {
         method: 'POST',
         credentials: 'include',
         body: formData
@@ -327,8 +327,8 @@ export const useGroupStore = defineStore('group', () => {
 
   const joinGroup = async (groupId, isPublic = true) => {
     const endpoint = isPublic 
-      ? 'http://localhost:8081/joinPublicGroup'
-      : `http://localhost:8081/newGroupRequest?groupId=${groupId}`
+      ? `${import.meta.env.VITE_API_BASE_URL}/joinPublicGroup`
+      : `${import.meta.env.VITE_API_BASE_URL}/newGroupRequest?groupId=${groupId}`
     
     try {
       // Set group loading state
@@ -391,7 +391,7 @@ export const useGroupStore = defineStore('group', () => {
 
   const leaveGroup = async (groupId) => {
     try {
-      const response = await fetch('http://localhost:8081/leaveGroup', {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/leaveGroup`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -452,7 +452,7 @@ export const useGroupStore = defineStore('group', () => {
 
   const respondToInvitation = async (invitationId, action) => {
     try {
-      const response = await fetch('http://localhost:8081/responseGroupInvite', {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/responseGroupInvite`, {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
@@ -480,7 +480,7 @@ export const useGroupStore = defineStore('group', () => {
 
   const respondToRequest = async (requestId, action, groupId) => {
     try {
-      const response = await fetch('http://localhost:8081/responseGroupRequest', {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/responseGroupRequest`, {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },

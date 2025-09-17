@@ -62,7 +62,7 @@ export const useNotificationStore = defineStore('notification', () => {
     loading.value = true
     error.value = null
     try {
-      const res = await fetch('http://localhost:8081/notifications', { credentials: 'include' })
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/notifications`, { credentials: 'include' })
       const data = await res.json()
       
       notifications.value = data.notifications || []
@@ -173,7 +173,7 @@ export const useNotificationStore = defineStore('notification', () => {
   
   async function markAllAsRead() {
     try {
-      const response = await fetch('http://localhost:8081/notifications/markAllAsRead', {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/notifications/markAllAsRead`, {
         method: 'POST',
         credentials: 'include',
         headers: {
@@ -197,7 +197,7 @@ export const useNotificationStore = defineStore('notification', () => {
 
   async function markAsRead(notificationId) {
     try {
-      const response = await fetch('http://localhost:8081/notifications/markAsRead', {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/notifications/markAsRead`, {
         method: 'POST',
         credentials: 'include',
         headers: {
@@ -232,7 +232,7 @@ export const useNotificationStore = defineStore('notification', () => {
 
   async function dismissNotification(notificationId) {
     try {
-      const response = await fetch(`http://localhost:8081/dismissNotification`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/dismissNotification`, {
         method: 'DELETE',
         credentials: 'include',
         headers: {

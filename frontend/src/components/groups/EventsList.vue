@@ -97,7 +97,7 @@ const handleCreateEvent = async (eventData) => {
   creatingEvent.value = true
   try {
     console.log('Creating event with data:', eventData)
-    const response = await fetch('http://localhost:8081/newEvent', {
+    const response = await fetch(`{import.meta.env.VITE_API_BASE_URL}/newEvent`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'

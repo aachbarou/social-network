@@ -1,0 +1,35 @@
+services:
+  - type: web
+    name: social-network-backend
+    env: go
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    plan: free
+    healthCheckPath: /
+    envVars:
+      - key: DATABASE_URL
+        value: "file:/var/data/sqlite.db"
+      - key: PORT
+        value: 8081
+    disk:
+      name: sqlite-data
+      mountPath: /var/data
+      sizeGB: 1
+
+  - type: web
+    name: social-network-frontend
+    env: static
+    runtime: docker
+    dockerfilePath: ./frontend/Dockerfile
+    plan: free
+    staticPublishPath: ./dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_BASE_URL
+        fromService:
+          type: web
+          name: social-network-backend
+          property: url

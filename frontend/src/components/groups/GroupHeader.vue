@@ -61,7 +61,7 @@ const bannerStyle = computed(() => {
     // Convert backend file path to full URL
     const imageUrl = props.group.image.startsWith('http') 
       ? props.group.image 
-      : `http://localhost:8081/${props.group.image}`
+      : `${import.meta.env.VITE_API_BASE_URL}/${props.group.image}`
     
     return {
       '--banner-image': `url("${imageUrl}")`

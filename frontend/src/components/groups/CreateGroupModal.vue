@@ -195,7 +195,7 @@ const handleSubmit = async () => {
 
     console.log('Creating group with FormData')
 
-    const response = await fetch('http://localhost:8081/newGroup', {
+    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/newGroup`, {
       method: 'POST',
       credentials: 'include',
       body: formData // Don't set Content-Type header, let browser set it with boundary

@@ -139,7 +139,7 @@ alert(txt)
             formData.append(key, this.form[key]);
           }
         }
-        const res = await fetch('http://localhost:8081/register', {
+        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/register`, {
           method: 'POST',
           body: formData
         });

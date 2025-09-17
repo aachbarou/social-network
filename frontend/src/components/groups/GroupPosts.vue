@@ -381,7 +381,7 @@ const addComment = async (postId) => {
 const getImageUrl = (imagePath) => {
   if (!imagePath) return ''
   if (imagePath.startsWith('http')) return imagePath
-  return `http://localhost:8081/${imagePath}`
+  return `${import.meta.env.VITE_API_BASE_URL}/${imagePath}`
 }
 
 const formatDate = (dateString) => {

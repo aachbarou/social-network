@@ -24,7 +24,7 @@ export const useUserStore = defineStore('user', {
       this.loading = true
       this.error = null
       try {
-        const res = await fetch(`http://localhost:8081/userData?userId=${this.user.id}`, { credentials: 'include' })
+        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/userData?userId=${this.user.id}`, { credentials: 'include' })
         const data = await res.json()
         if (res.ok && data.users && data.users.length > 0) {
           this.user = data.users[0]
@@ -41,7 +41,7 @@ export const useUserStore = defineStore('user', {
       this.loading = true
       this.error = null
       try {
-        const res = await fetch('http://localhost:8081/currentUser', { credentials: 'include' })
+        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/currentUser`, { credentials: 'include' })
         const data = await res.json()
         if (res.ok && data.users && data.users.length > 0) {
           this.user = data.users[0]
@@ -63,7 +63,7 @@ export const useUserStore = defineStore('user', {
       this.loading = true
       this.error = null
       try {
-        const res = await fetch('http://localhost:8081/updateProfile', {
+        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/updateProfile`, {
           method: 'POST',
           credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
@@ -85,7 +85,7 @@ export const useUserStore = defineStore('user', {
       this.loading = true
       this.error = null
       try {
-        const res = await fetch(`http://localhost:8081/changeStatus?status=${newStatus}`, {
+        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/changeStatus?status=${newStatus}`, {
           method: 'POST',
           credentials: 'include'
         })

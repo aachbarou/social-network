@@ -176,7 +176,7 @@ function getFullImageUrl(path) {
   if (!path) return 'https://placehold.co/120x120/e879c6/white?text=User';
   if (path.startsWith('http')) return path;
   try {
-    return new URL(path.replace(/^\/+/, ''), 'http://localhost:8081').href;
+    return new URL(path.replace(/^\/+/, ''), `${import.meta.env.VITE_API_BASE_URL}`).href;
   } catch (e) {
     console.error("Invalid image path:", path);
     return 'https://placehold.co/120x120/e879c6/white?text=Error';
@@ -197,7 +197,7 @@ const fetchPreviousMessages = async (conversation) => {
     return;
   }
   try {
-    const response = await fetch("http://localhost:8081/messages", {
+    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/messages`, {
         method: "POST",
         credentials: "include",
         headers: { 'Content-Type': 'application/json' },
@@ -273,7 +273,7 @@ const sendMessage = async () => {
     }
   };
   try {
-    const response = await fetch("http://localhost:8081/newMessage", {
+    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/newMessage`, {
         body: JSON.stringify(msgObj),
         method: "POST",
         credentials: "include",

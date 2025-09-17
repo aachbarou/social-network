@@ -239,7 +239,7 @@ const formatDate = (dateString) => {
 const loadGroupDetails = async () => {
   try {
     // Load group members
-    const membersRes = await fetch(`http://localhost:8081/groupMembers?groupId=${props.group.id}`, {
+    const membersRes = await fetch(`${import.meta.env.VITE_API_BASE_URL}/groupMembers?groupId=${props.group.id}`, {
       credentials: 'include'
     })
     if (membersRes.ok) {
@@ -250,7 +250,7 @@ const loadGroupDetails = async () => {
     }
 
     // Load recent activity - using group posts as activity
-    const activityRes = await fetch(`http://localhost:8081/groupPosts?groupId=${props.group.id}`, {
+    const activityRes = await fetch(`${import.meta.env.VITE_API_BASE_URL}/groupPosts?groupId=${props.group.id}`, {
       credentials: 'include'
     })
     if (activityRes.ok) {

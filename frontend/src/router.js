@@ -51,7 +51,7 @@ router.beforeEach(async (to, from, next) => {
 
   // Check user authentication status
   try {
-    const res = await fetch('http://localhost:8081/sessionActive', {
+    const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/sessionActive`, {
       method: 'GET',
       credentials: 'include'
     });

@@ -10,7 +10,7 @@ export const useFollowStore = defineStore('follow', () => {
   // Récupère la liste des followers
   async function fetchFollowers(userId) {
     try {
-      const res = await fetch(`http://localhost:8081/followers?userId=${userId}`, { credentials: 'include' })
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/followers?userId=${userId}`, { credentials: 'include' })
       const data = await res.json()
       followers.value = (res.ok && data.users) ? data.users : []
     } catch (e) {
@@ -21,7 +21,7 @@ export const useFollowStore = defineStore('follow', () => {
   // Récupère la liste des following
   async function fetchFollowing(userId) {
     try {
-      const res = await fetch(`http://localhost:8081/following?userId=${userId}`, { credentials: 'include' })
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/following?userId=${userId}`, { credentials: 'include' })
       const data = await res.json()
       following.value = (res.ok && data.users) ? data.users : []
     } catch (e) {
@@ -32,7 +32,7 @@ export const useFollowStore = defineStore('follow', () => {
   // Récupère les demandes de suivi en attente (pour profils privés)
   async function fetchFollowRequests() {
     try {
-      const res = await fetch('http://localhost:8081/notifications', { credentials: 'include' })
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/notifications`, { credentials: 'include' })
       const data = await res.json()
       // Filtrer les notifications de type FOLLOW
       followRequests.value = (res.ok && data.notifications)
@@ -48,7 +48,7 @@ export const useFollowStore = defineStore('follow', () => {
   // Suivre un utilisateur
   async function follow(userId) {
     try {
-      const res = await fetch(`http://localhost:8081/follow?userId=${userId}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/follow?userId=${userId}`, {
         method: 'POST',
         credentials: 'include'
       })
@@ -62,7 +62,7 @@ export const useFollowStore = defineStore('follow', () => {
   // Unfollow un utilisateur
   async function unfollow(userId) {
     try {
-      const res = await fetch(`http://localhost:8081/unfollow?userId=${userId}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/unfollow?userId=${userId}`, {
         method: 'POST',
         credentials: 'include'
       })
@@ -89,7 +89,7 @@ export const useFollowStore = defineStore('follow', () => {
   // Accepter ou refuser une demande de suivi (pour profils privés)
   async function respondToFollowRequest(requestId, response) {
     try {
-      const res = await fetch('http://localhost:8081/responseFollowRequest', {
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/responseFollowRequest`, {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },

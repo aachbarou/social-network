@@ -27,7 +27,7 @@ export const useMainStore = defineStore('main', () => {
 
   const fetchPosts = async () => {
     try {
-      const res = await fetch('http://localhost:8081/allPosts', { credentials: 'include' });
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/allPosts`, { credentials: 'include' });
       if (res.ok) {
         const data = await res.json();
         posts.value = Array.isArray(data.posts) ? data.posts : [];
@@ -41,7 +41,7 @@ export const useMainStore = defineStore('main', () => {
 
   const fetchUserPosts = async (userId) => {
     try {
-      const res = await fetch(`http://localhost:8081/userPosts?id=${userId}`, { credentials: 'include' });
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/userPosts?id=${userId}`, { credentials: 'include' });
       if (res.ok) {
         const data = await res.json();
         return Array.isArray(data.posts) ? data.posts : [];
@@ -62,7 +62,7 @@ export const useMainStore = defineStore('main', () => {
     if (comment.image) {
       commentData.append('image', comment.image);
     }
-    await fetch('http://localhost:8081/newComment', {
+    await fetch(`${import.meta.env.VITE_API_BASE_URL}/newComment`, {
       method: 'POST',
       credentials: 'include',
       body: commentData
@@ -168,7 +168,7 @@ export const useMainStore = defineStore('main', () => {
     }
     
     try {
-      const response = await fetch('http://localhost:8081/newPost', {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/newPost`, {
         method: 'POST',
         credentials: 'include',
         body: formData
@@ -205,14 +205,14 @@ export const useMainStore = defineStore('main', () => {
       return path;
     }
     const cleanPath = path.startsWith('/') ? path.substring(1) : path;
-    return `http://localhost:8081/${cleanPath}`;
+    return `${import.meta.env.VITE_API_BASE_URL}/${cleanPath}`;
   };
 
   // Global user avatar/image URL handler - works for all user images regardless of privacy
   const getFullImageUrl = (path) => {
     if (!path) return '';
     if (path.startsWith('http')) return path;
-    return `http://localhost:8081/${path.replace(/^\/+/, '')}`;
+    return `${import.meta.env.VITE_API_BASE_URL}/${path.replace(/^\/+/, '')}`;
   };
 
   const formatDate = (dateString) => {

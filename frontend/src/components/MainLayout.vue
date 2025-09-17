@@ -339,7 +339,7 @@ export default {
 
     async function logout() {
       try {
-        await fetch('http://localhost:8081/logout', {
+        await fetch(`${import.meta.env.VITE_API_BASE_URL}/logout`, {
           method: 'POST',
           credentials: 'include',
         });
@@ -358,7 +358,7 @@ export default {
         return;
       }
       try {
-        const response = await fetch('http://localhost:8081/allUsers', {
+        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/allUsers`, {
           credentials: 'include'
         });
         if (response.ok) {

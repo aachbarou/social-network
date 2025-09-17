@@ -548,7 +548,7 @@ async function loadProfile() {
   if (route.params.id) {
     // Profil d'un autre utilisateur
     userId = route.params.id
-    const res = await fetch(`http://localhost:8081/userData?userId=${userId}`, { credentials: 'include' })
+    const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/userData?userId=${userId}`, { credentials: 'include' })
     const data = await res.json()
     user.value = (data.users && data.users.length > 0) ? data.users[0] : null
     // Affichage : followers/following du profil visité

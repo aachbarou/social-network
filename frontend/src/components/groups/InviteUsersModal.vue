@@ -155,7 +155,7 @@ onMounted(async () => {
     // Fetch followers and existing invitations in parallel
     const [_, existingInvitationsResponse] = await Promise.all([
       followStore.fetchFollowers(userStore.user?.id),
-      fetch(`http://localhost:8081/checkGroupInvitations?groupId=${props.group.id}`, {
+      fetch(`${import.meta.env.VITE_API_BASE_URL}/checkGroupInvitations?groupId=${props.group.id}`, {
         credentials: 'include'
       })
     ])
@@ -207,7 +207,7 @@ const toggleInvitation = async (user) => {
   try {
     if (isInvited) {
       // Uninvite the user by calling the new endpoint
-      const response = await fetch('http://localhost:8081/cancelGroupInvite', {
+      const response = await fetch('${import.meta.env.VITE_API_BASE_URL}/cancelGroupInvite', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -229,7 +229,7 @@ const toggleInvitation = async (user) => {
       }
     } else {
       // Send invitation immediately
-      const response = await fetch('http://localhost:8081/newGroupInvite', {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/newGroupInvite`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

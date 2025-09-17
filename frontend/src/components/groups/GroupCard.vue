@@ -114,7 +114,7 @@ const imageUrl = computed(() => {
   if (props.group.image.startsWith('http')) {
     return props.group.image
   }
-  return `http://localhost:8081/${props.group.image}`
+  return `${import.meta.env.VITE_API_BASE_URL}/${props.group.image}`
 })
 
 const displayImageUrl = computed(() => {

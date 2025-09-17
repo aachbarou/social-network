@@ -1,38 +1,24 @@
-# Stage 1: Build
-FROM golang:1.23 as builder
+# Stage 1: Build the Go application
+FROM golang:1.23 AS builder
 
 WORKDIR /app
 
-# Copy go.mod and go.sum
 COPY go.mod go.sum ./
 RUN go mod download
 
-# Copy full source code including migrations
 COPY . .
 
-# Build the Go app
-RUN go build -o social-network server.go
-# Stage 2: Runtime container
-FROM ubuntu:22.04
+RUN CGO_ENABLED=0 GOOS=linux go build -o /social-network ./server.go
 
-WORKDIR /app/backend
+# Stage 2: Create the final, smaller image
+FROM alpine:latest
 
-RUN apt-get update && \
-    apt-get install -y ca-certificates sqlite3 && \
-    apt-get clean && rm -rf /var/lib/apt/lists/*
+WORKDIR /root/
 
-# Copy compiled binary
-COPY --from=builder /app/social-network .
-
-# Copy migrations folder from builder stage
-COPY --from=builder /app/pkg ./pkg
-
-# Copy static folders (e.g., imageUpload)
+COPY --from=builder /social-network .
 COPY --from=builder /app/imageUpload ./imageUpload
-
-RUN mkdir -p ./imageUpload
+COPY --from=builder /app/pkg/db/migration ./pkg/db/migration
 
 EXPOSE 8081
 
 CMD ["./social-network"]
-

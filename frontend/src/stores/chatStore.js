@@ -40,7 +40,7 @@ export const useChatStore = defineStore('chat', () => {
 
   async function fetchUnreadMessages() {
     try {
-        const response = await fetch('http://localhost:8081/unreadMessages', {
+        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/unreadMessages`, {
             credentials: 'include'
         });
         const data = await response.json();
@@ -94,7 +94,7 @@ export const useChatStore = defineStore('chat', () => {
 
   async function fetchChatUserList(userId) {
     try {
-        const response = await fetch(`http://localhost:8081/chatList?userId=${userId}`, {
+        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/chatList?userId=${userId}`, {
             credentials: 'include'
         });
         const data = await response.json();
